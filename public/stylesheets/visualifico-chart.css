@@ -1,0 +1,23 @@
+.axis path,
+.axis line {
+	fill: none;	
+	shape-rendering: crispEdges;
+}
+.xaxis path,
+.xaxis line {
+	stroke: rgb(127,127,127);
+}
+
+.axis text {
+	font-family: sans-serif;
+	font-size: 10px;
+	fill: rgb(166,166,166);
+}
+
+.bar-text {
+	font-family: sans-serif;
+	font-size: 10px;
+	fill: white;
+	font-weight: bold;
+}
+
