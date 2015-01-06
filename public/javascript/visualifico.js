@@ -1,10 +1,21 @@
-/*--------------------------------------------------------------------------
-* Visualifico
-* ver 0.1.0.0 (December 2014)
-*
-* created and maintained by Alfano Rosario <ro.alfano@gmail.com>
+/*
+Visualifico 0.0.1 - Visual analytics for MongoDB
+Copyright (C) 2015  Rosario Alfano
 
-*--------------------------------------------------------------------------*/
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
 function EventDispatcher () {
 
 	this.listeners = [];
@@ -12,7 +23,7 @@ function EventDispatcher () {
 
 EventDispatcher.prototype.dispatch = function (event) {
 
-	console.log ("EventDispatcher::dispatch " + JSON.stringify (event));
+	//console.log ("EventDispatcher::dispatch " + JSON.stringify (event));
 	
 	this.listeners.forEach (function (listener) {
 	
@@ -26,11 +37,11 @@ EventDispatcher.prototype.dispatch = function (event) {
 
 EventDispatcher.prototype.addListener = function (listener) {
 
-	console.log ("EventDispatcher::addListener " + listener.getId ());
+	//console.log ("EventDispatcher::addListener " + listener.getId ());
 
 	this.listeners.push ({"id": listener.getId (), "listener": listener});
 	
-	console.log ("EventDispatcher::addListener " + this.listeners.length);
+	//console.log ("EventDispatcher::addListener " + this.listeners.length);
 };
 
 function VisualificoChart () {};
@@ -77,25 +88,60 @@ VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, 
 VisualificoChart.prototype.notifyEvent = function (event) {
 
 	console.log ("VisualificoChart::notifyEvent event = " + JSON.stringify (event));
-	console.log ("VisualificoChart::notifyEvent this.currentFilters " + JSON.stringify (this.currentFilters)); 
-	console.log ("VisualificoChart::notifyEvent this.defaultFilters " + JSON.stringify (this.defaultFilters));
-	console.log ("VisualificoChart::notifyEvent event.selected.length " + event.selected.length);
+	//console.log ("VisualificoChart::notifyEvent this.currentFilters " + JSON.stringify (this.currentFilters)); 
+	//console.log ("VisualificoChart::notifyEvent this.defaultFilters " + JSON.stringify (this.defaultFilters));
+	//console.log ("VisualificoChart::notifyEvent event.selected.length " + event.selected.length);
 	//filter_obj [event.dimension] = 
 	
 	if (event.selected.length > 0) {
-	
-		this.currentFilters [event.dimension] = {"$in":event.selected};	
-	}
-	else if (this.defaultFilters [event.dimension])	{
-	
-		
-		this.currentFilters [event.dimension] = JSON.parse( JSON.stringify( this.defaultFilters [event.dimension] ) );			
+		//Selected elements already exists
+		for (var sel_idx in event.selection) {
+			
+			if ((this.currentFilters [sel_idx]) && 
+				((!this.defaultFilters [sel_idx]) || this.defaultFilters [sel_idx].disabled)) {
+				
+				//Selected elements on the given dimension already exists
+				//this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
+				
+				if (event.action == "added") {
+				
+					this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
+				}
+				else if  (event.action == "removed") {
+				
+					var idx = this.currentFilters [sel_idx] ["$in"].indexOf (event.selection [sel_idx]);
+					
+					this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+				}
+			}
+			else {
+				//Selected elements does not exist on the given dimension
+				this.currentFilters [sel_idx] = {"$in":[event.selection [sel_idx]]};	
+				if (this.defaultFilters [sel_idx]) this.defaultFilters [sel_idx].disabled = true;
+			}
+		}
 	}
 	else {
-	
-		delete this.currentFilters [event.dimension];	
+		//console.log ("VisualificoChart::notifyEvent selected empty " + this.defaultFilters [sel_idx]);	
+		for (var sel_idx in event.selection) {
+		
+			//console.log ("this.defaultFilters [sel_idx] " + this.defaultFilters [sel_idx]);		
+			if (this.defaultFilters [sel_idx])	{	
+				
+				delete this.defaultFilters [sel_idx].disabled;
+				
+				//A default filter is defined on the same dimension. Set back the default filter
+				this.currentFilters [sel_idx] = 
+					JSON.parse( JSON.stringify( this.defaultFilters [sel_idx] ) );
+				
+				
+			}
+			else
+				delete this.currentFilters [sel_idx];
+		}
 	}
-	console.log ("VisualificoChart::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
+	
+	//console.log ("VisualificoChart::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
 	
 	var _this = this;
 	
@@ -106,39 +152,63 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 		}, 
 		function (response) {
 		
-			console.log ("VisualificoChart::notifyEvent data update " + response.feedback);
+			//console.log ("VisualificoChart::notifyEvent data update " + response.feedback);
 			
 			_this.update();
 		}
 	);
 }
 
+VisualificoChart.prototype.getSelectedKey = function (d) {
+
+	return this.getKey (d);
+}
+
+VisualificoChart.prototype.getSelection = function (d) {
+
+	var selection = {};
+	
+	selection [this.dimension] = this.getKey (d);
+	return selection;
+}
+
 VisualificoChart.prototype.addInteraction = function (elements) {
 
 	var _this = this;
-	var get_key = this.getKey;
 	
-	this.color = d3.scale.category20c();
+	//this.color = d3.scale.category20c();
+	var action = "";
 	
 	elements.on("click", function (d) {
 		
-		if ((_this.selected.length > 0) && (_this.selected.indexOf (get_key(d)) >= 0)) {
-			
-			var idx = _this.selected.indexOf (get_key(d));
+		if ((_this.selected.length > 0) && (_this.selected.indexOf (_this.getSelectedKey (d)) >= 0)) {
+			//The clicked element is already selected: delete the selection
+			var idx = _this.selected.indexOf (_this.getSelectedKey (d));
 			
 			_this.selected.splice (idx,1);
-			console.log ("_this.selected " + JSON.stringify (_this.selected));
+			
+			action = "removed";
+			
+			//console.log ("_this.selected " + JSON.stringify (_this.selected));
 			_this.updateSelection ();
 			
-		} else {				
 			
-			_this.selected.push (get_key(d));								
+		} else {				
+			//The clicked element is not selected
+			_this.selected.push (_this.getSelectedKey (d));								
+			action = "added";
 			_this.updateSelection ();					
 			
 		}
-		console.log ("_this.selected " + JSON.stringify (_this.selected));
+		//console.log ("_this.selected " + JSON.stringify (_this.selected));
 		
-		_this.dispatcher.dispatch ({"chartid": _this.containerId, "dimension" : _this.dimension, "selected" : _this.selected});			
+		_this.dispatcher.dispatch ({
+			"chartid": _this.containerId, 
+			"dimension" : _this.dimension, 
+			"selected" : _this.selected, 
+			"selection": _this.getSelection (d),
+			"action": action
+		});			
 	})
 	.on("mouseover", function() {
 		
@@ -150,11 +220,12 @@ VisualificoChart.prototype.addInteraction = function (elements) {
 			.attr("fill", _this.highlightColor);
 	})
 	.on("mouseout", function(d,i) {
+	
 		if (_this.selected.length > 0) return;
 		d3.select(this)
 			.transition()
 			.duration(250)
-			.attr("fill", function (d,i) {return _this.returnBarColor(d)});
+			.attr("fill", function (d,i) {return _this.returnBarColor (d)});
 	});
 }
 
@@ -179,13 +250,14 @@ BarChart.prototype.loadData = function (parameters, callback) {
 	
 	if (parameters.filters)
 		filters = parameters.filters;
-	else
-		filters = this.defaultFilters;
-		
+	else {
+			
+		filters = this.defaultFilters;	
+	}
 	this.currentFilters = JSON.parse( JSON.stringify(filters));
 	
-	console.log ("loadData this.defaultFilters " + JSON.stringify (this.defaultFilters));
-	console.log ("loadData this.currentFilters " + JSON.stringify (this.currentFilters));
+	//console.log ("loadData this.defaultFilters " + JSON.stringify (this.defaultFilters));
+	//console.log ("loadData this.currentFilters " + JSON.stringify (this.currentFilters));
 	
 	this.currentTop = parameters.top;
 
@@ -199,7 +271,7 @@ BarChart.prototype.loadData = function (parameters, callback) {
 			((parameters.top && (!isNaN(parameters.top))) ? "&top=" + parameters.top : "") +
 			(this.currentFilters ? "&filters=" + JSON.stringify(filters): "{}");
 	
-		console.log ("BarChart::loadData url = " + url);
+		//console.log ("BarChart::loadData url = " + url);
 	
 		d3.json(url
 			, function (error, data) {
@@ -208,7 +280,7 @@ BarChart.prototype.loadData = function (parameters, callback) {
 				console.log ("BarChart::loadData error - " + error);
 				return;
 			}
-			console.log ("BarChart::loadData data - " + JSON.stringify (data));
+			//console.log ("BarChart::loadData data - " + JSON.stringify (data));
 			
 			_this.setResponse (data);
 			
@@ -237,7 +309,7 @@ BarChart.prototype.addXAxis = function (x_scale) {
 		.call (xAxis)
 		.attr ("transform", "translate(0," + (this.h - this.getBottomMargin ()) + ")");
 		
-	console.log ("addXAxis append ok");
+	//console.log ("addXAxis append ok");
 }
 
 BarChart.prototype.addYAxis = function (y_scale) {
@@ -260,7 +332,7 @@ BarChart.prototype.drawBars = function (bars) {
 		this.getLeftMargin (this.getMaxYLabel()), 
 		this.getRightMargin ());
 		
-	var y_scale = this.getYScale (this.h, this.getBottomMargin ());
+	var y_scale = this.getYScale ();
 
 	bars.attr ("x", function (d) {
 		
@@ -289,7 +361,7 @@ BarChart.prototype.drawTextLabels = function (texts) {
 
 	var _this = this;
 
-	var y_scale = this.getYScale (this.h, this.getBottomMargin ());
+	var y_scale = this.getYScale ();
 	
 	var x_scale = this.getXScale (
 		this.getLeftMargin (this.getMaxYLabel ()), 
@@ -317,9 +389,9 @@ BarChart.prototype.draw = function () {
 	this.colorScale = 
 		d3.scale.ordinal().domain(this.domain).range(d3.scale.category20());
 */
-	this.colorScale =d3.scale.category20();
-	console.log ("BarChart::draw this.domain " + JSON.stringify (this.domain));
-	console.log ("BarChart::draw this.colorScale " + this.colorScale ("LAMPA"));
+	this.colorScale = d3.scale.category20();
+	//console.log ("BarChart::draw this.domain " + JSON.stringify (this.domain));
+	//console.log ("BarChart::draw this.colorScale " + this.colorScale ("LAMPA"));
 	
 	this.svg = svg;
 
@@ -332,7 +404,7 @@ BarChart.prototype.draw = function () {
 	svg.attr ("width", w);
 	svg.attr ("height", h);
 
-	var y_scale = this.getYScale (h, this.getBottomMargin ());
+	var y_scale = this.getYScale ();
 	
 	var x_scale = this.getXScale (
 		this.getLeftMargin (this.getMaxYLabel ()), 
@@ -356,7 +428,36 @@ BarChart.prototype.draw = function () {
 		.append ("text");
 
 	this.drawTextLabels (texts);
+	
+	if (this.legendDataset)
+		this.drawLegend ();		
+}
+
+BarChart.prototype.drawLegend = function () {
+
+	console.log ("BarChart::drawLegend");
+
+	var _this = this;
+
+	var legend = this.svg.append("g")
+		.attr("class", "legend")
+		.attr("x", this.w - 65)
+		.attr("y", 25)
+		.attr("height", 100)
+		.attr("width", 100);
 		
+	legend.selectAll('rect')
+		.data (this.legendDataset)
+		.enter()
+		.append("rect")
+		.attr("x", this.w - 65)
+		.attr("y", function(d, i){ return i *  20;})
+		.attr("width", 10)
+		.attr("height", 10)
+		.style("fill", function(d) { 
+		
+			 _this.colorScale (d);	
+		});
 }
 
 BarChart.prototype.update = function () {
@@ -370,7 +471,7 @@ BarChart.prototype.update = function () {
 	var get_value = this.getValue;
 	
 	var x_scale = this.getXScale (this.getLeftMargin (this.getMaxYLabel ()), this.getRightMargin());
-	var y_scale = this.getYScale (this.h, this.getBottomMargin());
+	var y_scale = this.getYScale ();
 
 	var xAxis = d3.svg.axis().scale (x_scale).orient("bottom");
 	var yAxis = d3.svg.axis().scale (y_scale).orient("left");
@@ -483,7 +584,7 @@ BarChart.prototype.updateSelection = function () {
 			.data (this.group)
 			.attr("fill", function (d,i) {
 			
-				if (_this.selected.indexOf(_this.getKey (d)) >= 0)
+				if (_this.selected.indexOf(_this.getSelectedKey (d)) >= 0)
 					return _this.selectionColor;
 				else
 					return "rgb(191,191,191)";
@@ -501,7 +602,7 @@ function VerticalCategoryBarChart () {}
 
 VerticalCategoryBarChart.prototype = new BarChart();
 
-VerticalCategoryBarChart.prototype.getYScale = function (h, bottom_margin) {
+VerticalCategoryBarChart.prototype.getYScale = function () {
 	
 	var y_scale = d3.scale.ordinal ();	
 
@@ -510,7 +611,7 @@ VerticalCategoryBarChart.prototype.getYScale = function (h, bottom_margin) {
 	if ((this.domain.length > 0) && (!isNaN (this.domain)[0])) {
 	
 		y_scale.domain (this.domain);		
-		y_scale.rangeBands ([0, h - bottom_margin]);
+		y_scale.rangeBands ([0, this.h - this.getBottomMargin()]);
 	}
 	return y_scale;
 }
@@ -524,6 +625,11 @@ VerticalCategoryBarChart.prototype.getXScale = function (l_padding, right_margin
 	x_scale.range ([l_padding, this.w - right_margin]);
 	
 	return x_scale;
+}
+
+VerticalCategoryBarChart.prototype.getTopMargin = function () {
+
+	return 10;
 }
 
 VerticalCategoryBarChart.prototype.getBottomMargin = function () {
@@ -589,7 +695,7 @@ VerticalCategoryBarChart.prototype.getLabelX = function (d, x_scale) {
 
 VerticalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
 	
-	return this.getY (d, y_scale) + 17;
+	return this.getY (d, y_scale) + (this.getHeigth (d) / 2);
 }	
 
 /*
@@ -600,12 +706,12 @@ function HorizontalCategoryBarChart () {}
 
 HorizontalCategoryBarChart.prototype = new BarChart();
 
-HorizontalCategoryBarChart.prototype.getYScale = function (h, bottom_margin) {
+HorizontalCategoryBarChart.prototype.getYScale = function () {
 	
 	var get_value = this.getValue;
 	var y_scale = d3.scale.linear ();
 	y_scale.domain ([0, d3.max (this.group, function (d) { return get_value (d); })]);
-	y_scale.range ([h - bottom_margin, 0]);
+	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
 	
 	return y_scale;
 }
@@ -619,14 +725,20 @@ HorizontalCategoryBarChart.prototype.getXScale = function (l_padding, right_marg
 	if ((this.domain.length > 0) /*&& (!isNaN (this.domain)[0])*/) {
 	
 		x_scale.domain (this.domain);		
-		x_scale.rangeBands ([l_padding, this.w - right_margin],0.25);
+		//x_scale.rangeRoundBands ([l_padding, this.w - right_margin]);
+		x_scale.rangeRoundBands ([0, this.w], 0.1, 0.5);
 	}
 	return x_scale;
 }
 
+HorizontalCategoryBarChart.prototype.getTopMargin = function () {
+
+	return 10;
+}
+
 HorizontalCategoryBarChart.prototype.getBottomMargin = function () {
 
-	return 20;
+	return 30;
 }
 
 HorizontalCategoryBarChart.prototype.getMaxYLabel = function () {
@@ -675,14 +787,14 @@ HorizontalCategoryBarChart.prototype.getHeigth = function (d, y_scale) {
 
 	var get_value = this.getValue;
 	
-	//console.log ("HorizontalCategoryBarChart::getY " + y_scale (0) - y_scale (get_value (d)));
+	//console.log ("HorizontalCategoryBarChart::getY " + (y_scale (0) - y_scale (get_value (d))));
 	
 	return y_scale (0) - y_scale (get_value (d));
 }
 
 HorizontalCategoryBarChart.prototype.getLabelX = function (d, x_scale) {
 
-	return x_scale (this.getKey (d)) + x_scale.rangeBand() / 2;
+	return x_scale (this.getKey (d)) + (x_scale.rangeBand() / 2) - (((this.getValue (d) + "")).length * 2);
 }	
 
 HorizontalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
@@ -700,7 +812,7 @@ StackedBarChart.prototype = new HorizontalCategoryBarChart ();
 
 StackedBarChart.prototype.setResponse = function (data) {
 
-	console.log ("StackedBarChart::setResponse data = " + JSON.stringify (data));
+	//console.log ("StackedBarChart::setResponse data = " + JSON.stringify (data));
 	var _this = this;
 	
 	this.oldGroup = this.group;
@@ -709,7 +821,7 @@ StackedBarChart.prototype.setResponse = function (data) {
 	
 	this.oldGroupByDim = this.groupByDim;
 	
-	console.log ("StackedBarChart::setResponse data.groupByDim = " + JSON.stringify (data.response.groupByDim));
+	//console.log ("StackedBarChart::setResponse data.groupByDim = " + JSON.stringify (data.response.groupByDim));
 	
 	this.groupByDim = data.response.groupByDim;
 	this.stackedDomain = data.response.stackedDomain;
@@ -731,24 +843,24 @@ StackedBarChart.prototype.init = function (container_id, get_value, get_key, get
 	
 	if (!parameters.stackedDimension) console.log ("StackedBarChart::init error: missing stackedDimension");	
 	if (!get_stacked_key) console.log ("StackedBarChart::init error: missing get_stacked_keys");
-	if (!parameters.get_stacked_keys_domain) console.log ("StackedBarChart::init error: missing get_stacked_keys_domain");
+	if (!get_stacked_keys_domain) console.log ("StackedBarChart::init error: missing get_stacked_keys_domain");
 	
 	this.stackedDimension = parameters.stackedDimension;
 	this.getStackedKey = get_stacked_key;
-	this.getStackedKeysDomain = parameters.get_stacked_keys_domain;	
+	this.getStackedKeysDomain = get_stacked_keys_domain;	
+	this.legendDataset = get_stacked_keys_domain;
 }
 
-StackedBarChart.prototype.getYScale = function (h, bottom_margin) {
+StackedBarChart.prototype.getYScale = function () {
 	
 	var get_value = this.getValue;
 	var y_scale = d3.scale.linear ();
-	//console.log ("getYScale " + JSON.stringify (this.groupByDim));
-	y_scale.domain ([0, d3.max (this.groupByDim, function (d) { /*console.log ("getYScale " + JSON.stringify (d)); */return get_value (d); })]);
-	y_scale.range ([h - bottom_margin, 0]);
+	
+	y_scale.domain ([0, d3.max (this.groupByDim, function (d) { return get_value (d); })]);
+	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
 	
 	return y_scale;
 }
-
 
 StackedBarChart.prototype.getY = function (d, y_scale) {		
 	
@@ -774,7 +886,7 @@ StackedBarChart.prototype.returnBarColor = function (d) {
 
 StackedBarChart.prototype.getLabelY = function (d, y_scale) {
 
-	var y_scale = this.getYScale (this.h, this.getBottomMargin ());
+	var y_scale = this.getYScale ();
 
 	var bar_height = this.getHeigth(d, y_scale);
 
@@ -785,4 +897,19 @@ StackedBarChart.prototype.getLabelY = function (d, y_scale) {
 	this.lastTextYByDim [d [this.dimension]] += this.getValue (d);
 	
 	return to_return + (bar_height / 2);
+}
+
+StackedBarChart.prototype.getSelectedKey = function (d) {
+
+	return this.getKey (d) + ";" + this.getStackedKey (d);
+}
+
+StackedBarChart.prototype.getSelection = function (d) {
+
+	var selection = {};
+	
+	selection [this.dimension] = this.getKey (d);
+	selection [this.stackedDimension] = this.getStackedKey(d);
+	
+	return selection;
 }
