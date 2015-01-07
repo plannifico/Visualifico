@@ -1,29 +1,28 @@
 /*
-Visualifico 0.0.1 - Visual analytics for MongoDB
+Visualifico 0.0.1 - document-based and dynamic schemas Visual Analytics
 Copyright (C) 2015  Rosario Alfano
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var MongoClient = require('mongodb').MongoClient;
 var config = require("../models/config.js");
 var logger = require("./logger.js");
 
-
-module.exports = function Orchestrator () {
+module.exports = function Orchestrator () {	
 	
-	this.getMeasureByDimensionDBData = function (_collection, _dim, _measure, _filters, callback) {
+	this.getMeasureByDimensionDBData = function (_collection, _dim, _measures, _filters, callback) {
 	
 		logger.log ("Orchestrator::getMeasureByDimensionDBData");
 	
@@ -45,9 +44,21 @@ module.exports = function Orchestrator () {
 					
 					selection [_dim] = 1;
 					
-					var reduce = "function( curr, result ) {result.measure += curr. "+ _measure +";};"
-										
-					collection.group (selection, _filters, {"measure":0}, reduce, 
+					var reduce = "function( curr, result ) { ";
+					
+					var init = {};
+					
+					for (var measure in _measures) {
+					
+						reduce += "result." + _measures [measure] + " += curr."+ _measures [measure] + "; ";
+						init [_measures [measure]] = 0;
+					}
+					
+					reduce += "};";	
+					
+					logger.log ("Orchestrator::getStackedChartDBData reduce: " + reduce);	
+					
+					collection.group (selection, _filters, init, reduce, 
 					
 						function (err, chart_data) {
 					
@@ -88,21 +99,17 @@ module.exports = function Orchestrator () {
 				if (collection) {				
 										
 					logger.log ("Orchestrator::getStackedMeasureByDimensionDBData filters " + JSON.stringify (_filters));
-									
-					/*var selection = [];
-					
-					selection.push (_dim);
-					selection.push (_stacked_dim);
-					*/
 					
 					var selection = {};
 					
 					selection [_dim] = 1;
 					selection [_stacked_dim] = 1;
 					
-					var reduce = "function( curr, result ) {result.key=[result."+ _dim +",result." + _stacked_dim + "];result.measure += curr. "+ _measure +";};"
-										
-					collection.group (selection, _filters, {"measure":0}, reduce, 
+					var reduce = "function( curr, result ) {result.key=[result." + _dim + ",result." + _stacked_dim + "];result." + _measure + " += curr. "+ _measure +";};"
+					var init = {};
+					init [_measure] = 0;
+					
+					collection.group (selection, _filters, init, reduce, 
 					
 						function (err, chart_data) {
 					
@@ -112,9 +119,10 @@ module.exports = function Orchestrator () {
 							var selection = {};							
 							selection [_dim] = 1;
 							
-							var reduce = "function( curr, result ) {result.measure += curr. "+ _measure +";};";
-
-							collection.group (selection, _filters, {"measure":0}, reduce,
+							var reduce = "function( curr, result ) {result." + _measure + " += curr. "+ _measure +";};";
+							var init = {};
+							init [_measure] = 0;
+							collection.group (selection, _filters, init, reduce,
 							
 								function (err, group_by_dim_data) {
 					

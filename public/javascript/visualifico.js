@@ -1,19 +1,19 @@
 /*
-Visualifico 0.0.1 - Visual analytics for MongoDB
+Visualifico 0.0.1 - document-based and dynamic schemas Visual Analytics
 Copyright (C) 2015  Rosario Alfano
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 function EventDispatcher () {
@@ -435,13 +435,13 @@ BarChart.prototype.draw = function () {
 
 BarChart.prototype.drawLegend = function () {
 
-	console.log ("BarChart::drawLegend");
+	console.log ("BarChart::drawLegend " + JSON.stringify (this.legendDataset));
 
 	var _this = this;
 
 	var legend = this.svg.append("g")
 		.attr("class", "legend")
-		.attr("x", this.w - 65)
+		.attr("x", this.w - 85)
 		.attr("y", 25)
 		.attr("height", 100)
 		.attr("width", 100);
@@ -450,14 +450,43 @@ BarChart.prototype.drawLegend = function () {
 		.data (this.legendDataset)
 		.enter()
 		.append("rect")
-		.attr("x", this.w - 65)
-		.attr("y", function(d, i){ return i *  20;})
+		.attr("class", "legend-box")
+		.attr("x", this.w - 85)
+		.attr("y", function(d, i){ return (i *  20) + 10;})
 		.attr("width", 10)
 		.attr("height", 10)
 		.style("fill", function(d) { 
 		
-			 _this.colorScale (d);	
+			 return _this.colorScale (d [_this.stackedDimension]);	
 		});
+		
+	legend.selectAll('text')
+		.data (this.legendDataset)
+		.enter()
+		.append("text")
+		.attr("class", "legend-label")
+		.attr("x", this.w - 70)
+		.attr("y", function(d, i){ return (i *  20) + 20;})
+		.text (function(d) { 
+		
+			 return d [_this.stackedDimension];	
+		});
+}
+
+BarChart.prototype.updateLegend = function () {
+
+	console.log ("BarChart::updateLegend");
+	
+	this.svg.selectAll (".legend-label")
+		.remove();
+
+	this.svg.selectAll ("text.legend-label")
+		.remove();
+		
+	this.svg.selectAll ("rect.legend-box")
+		.remove();
+
+	this.drawLegend();
 }
 
 BarChart.prototype.update = function () {
@@ -556,6 +585,8 @@ BarChart.prototype.update = function () {
 	this.drawTextLabels (texts);
 	
 	this.updateSelection ();
+	
+	if (this.legendDataset) this.updateLegend();
 }
 	
 BarChart.prototype.returnBarColor = function (d) {
@@ -726,7 +757,7 @@ HorizontalCategoryBarChart.prototype.getXScale = function (l_padding, right_marg
 	
 		x_scale.domain (this.domain);		
 		//x_scale.rangeRoundBands ([l_padding, this.w - right_margin]);
-		x_scale.rangeRoundBands ([0, this.w], 0.1, 0.5);
+		x_scale.rangeRoundBands ([0, this.w - this.getRightMargin ()], 0.5, 1);
 	}
 	return x_scale;
 }
@@ -754,13 +785,13 @@ HorizontalCategoryBarChart.prototype.getLeftMargin = function (max_y_label) {
 }
 
 HorizontalCategoryBarChart.prototype.getRightMargin = function () {
-
-	return 20;
+	
+	return ((this.legendDataset) ? 30 : 10);
 }
 
 HorizontalCategoryBarChart.prototype.getYAxisMargin = function () {
 
-	return 50;
+	return 40;
 }
 
 HorizontalCategoryBarChart.prototype.getY = function (d, y_scale) {		
@@ -775,11 +806,12 @@ HorizontalCategoryBarChart.prototype.getY = function (d, y_scale) {
 HorizontalCategoryBarChart.prototype.getX = function (d, x_scale) {
 	
 	var get_key = this.getKey;	
-	return x_scale (get_key (d));
+	return x_scale (get_key (d)) - (x_scale.rangeBand() / 2);
 }
 
 HorizontalCategoryBarChart.prototype.getWidth = function (d, x_scale) {
-	
+
+	//console.log ("HorizontalCategoryBarChart::getWidth " + this.getRightMargin ());
 	return (this.w - this.getRightMargin () - this.getLeftMargin (0)) / (this.domain.length + 1);
 }	
 
@@ -835,20 +867,31 @@ StackedBarChart.prototype.setResponse = function (data) {
 		_this.lastTextYByDim [dim] = 0;
 		
 	});
+	
+	var sd = this.stackedDomain;
+	
+	this.legendDataset = [];
+	
+	for (var key_idx in sd) {
+		var legend_item = {};
+		legend_item [this.stackedDimension] = sd [key_idx];
+		this.legendDataset.push (legend_item);
+	}
+	
+	console.log ("StackedBarChart::init this.legendDataset = " + JSON.stringify (this.legendDataset));
 }
 
-StackedBarChart.prototype.init = function (container_id, get_value, get_key, get_stacked_key, get_stacked_keys_domain, dispatcher, parameters) {
+StackedBarChart.prototype.init = function (container_id, get_value, get_key, get_stacked_key, dispatcher, parameters) {
 
 	this.initMe (container_id, get_value, get_key, dispatcher, parameters, "getStackedMeasureByDimensionData");
 	
 	if (!parameters.stackedDimension) console.log ("StackedBarChart::init error: missing stackedDimension");	
 	if (!get_stacked_key) console.log ("StackedBarChart::init error: missing get_stacked_keys");
-	if (!get_stacked_keys_domain) console.log ("StackedBarChart::init error: missing get_stacked_keys_domain");
 	
 	this.stackedDimension = parameters.stackedDimension;
 	this.getStackedKey = get_stacked_key;
-	this.getStackedKeysDomain = get_stacked_keys_domain;	
-	this.legendDataset = get_stacked_keys_domain;
+	
+	
 }
 
 StackedBarChart.prototype.getYScale = function () {

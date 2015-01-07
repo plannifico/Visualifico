@@ -1,8 +1,0 @@
-extends ../layout
-block content
-	h1= topLevelNodes.length
-	div(id="body")
-	#categories	
-	script.
-		renderTreeMap (!{JSON.stringify(topLevelNodes)});
-		

@@ -1,126 +1,42 @@
-2015-01-06T22:31:10.668Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:31:10.669Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:31:10.669Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:31:10.669Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:31:10.691Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:31:10.691Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:31:10.691Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:31:10.691Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:31:10.714Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:31:10.714Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:31:10.717Z - getBarChartData: parameters ok
-2015-01-06T22:31:10.718Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:31:10.717Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:31:10.717Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:31:10.812Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:31:10.812Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:31:10.857Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:31:10.857Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:45:45.467Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:45:45.468Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:45:45.468Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:45:45.475Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:45:45.476Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:45:45.476Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:45:45.476Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:45:45.483Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:45:45.467Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:45:45.483Z - getBarChartData: parameters ok
-2015-01-06T22:45:45.484Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:45:45.484Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:45:45.633Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:45:45.633Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:45:45.812Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:45:45.812Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:45:45.975Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:45:45.975Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:46:24.297Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:46:24.297Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:46:24.297Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:46:24.298Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:46:24.313Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:46:24.314Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:46:24.314Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:46:24.314Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:46:24.323Z - getBarChartData: parameters ok
-2015-01-06T22:46:24.323Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:46:24.323Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:46:24.323Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:46:24.413Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:46:24.413Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:46:24.509Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:46:24.509Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:46:24.583Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:46:24.583Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:47:50.963Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:47:50.963Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:47:50.963Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:47:50.963Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:47:50.967Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:47:50.968Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:47:50.968Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:47:50.969Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:47:51.003Z - getBarChartData: parameters ok
-2015-01-06T22:47:51.003Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:47:51.003Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:47:51.004Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:47:51.027Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:47:51.028Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:47:51.093Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:47:51.094Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:47:51.152Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:47:51.152Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:48:53.606Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:48:53.606Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:48:53.606Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:48:53.607Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:48:53.612Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:48:53.612Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:48:53.613Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:48:53.613Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:48:53.629Z - getBarChartData: parameters ok
-2015-01-06T22:48:53.629Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:48:53.630Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:48:53.630Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:48:53.676Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:48:53.676Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:48:53.680Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:48:53.680Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:48:53.741Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:48:53.742Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:49:17.293Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:49:17.293Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:49:17.293Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:49:17.293Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:49:17.303Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:49:17.304Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:49:17.304Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:49:17.304Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:49:17.312Z - getBarChartData: parameters ok
-2015-01-06T22:49:17.313Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:49:17.313Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:49:17.313Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:49:17.354Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:49:17.354Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:49:17.361Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:49:17.361Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:49:17.436Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:49:17.438Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:50:23.540Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:50:23.540Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:50:23.540Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:50:23.540Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:50:23.550Z - getMeasureByDimensionData: parameters ok
-2015-01-06T22:50:23.551Z - getMeasureByDimensionData: filters_strings = [object Object]
-2015-01-06T22:50:23.551Z - Orchestrator::getMeasureByDimensionData
-2015-01-06T22:50:23.551Z - Orchestrator::getMeasureByDimensionDBData
-2015-01-06T22:50:23.555Z - getBarChartData: parameters ok
-2015-01-06T22:50:23.555Z - getBarChartData: filters_strings = [object Object]
-2015-01-06T22:50:23.555Z - Orchestrator::getStackedMeasureByDimensionData
-2015-01-06T22:50:23.555Z - Orchestrator::getStackedMeasureByDimensionDBData
-2015-01-06T22:50:23.660Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:50:23.660Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:50:23.718Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:50:23.719Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-2015-01-06T22:50:23.930Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
-2015-01-06T22:50:23.931Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:46:20.529Z - getMeasureByDimensionData: parameters ok
+2015-01-07T06:46:20.531Z - getMeasureByDimensionData: filters_strings = [object Object]
+2015-01-07T06:46:20.532Z - Orchestrator::getMeasureByDimensionData
+2015-01-07T06:46:20.532Z - Orchestrator::getMeasureByDimensionDBData
+2015-01-07T06:46:20.661Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:46:20.661Z - Orchestrator::getMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:46:20.662Z - Orchestrator::getStackedChartDBData reduce: function( curr, result ) { result.0 += curr. 0; result.1 += curr. 1; result.2 += curr. 2; result.3 += curr. 3; result.4 += curr. 4; result.5 += curr. 5; result.6 += curr. 6; result.7 += curr. 7; };
+2015-01-07T06:46:20.698Z - Orchestrator::getStackedChartDBData error during group-by: MongoError: exception: SyntaxError: Unexpected number at $group reduce setup
+2015-01-07T06:47:16.864Z - getMeasureByDimensionData: parameters ok
+2015-01-07T06:47:16.864Z - getMeasureByDimensionData: filters_strings = [object Object]
+2015-01-07T06:47:16.864Z - Orchestrator::getMeasureByDimensionDBData
+2015-01-07T06:47:16.864Z - Orchestrator::getMeasureByDimensionData
+2015-01-07T06:47:16.968Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:47:16.969Z - Orchestrator::getMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:47:16.969Z - Orchestrator::getStackedChartDBData reduce: function( curr, result ) { result.T += curr.T; result.o += curr.o; result.t += curr.t; result.a += curr.a; result.l += curr.l; result.N += curr.N; result.e += curr.e; result.w += curr.w; };
+2015-01-07T06:48:31.892Z - getMeasureByDimensionData: parameters ok
+2015-01-07T06:48:31.896Z - getMeasureByDimensionData: filters_strings = [object Object]
+2015-01-07T06:48:31.896Z - Orchestrator::getMeasureByDimensionData
+2015-01-07T06:48:31.897Z - Orchestrator::getMeasureByDimensionDBData
+2015-01-07T06:48:31.986Z - Orchestrator::getMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:48:31.986Z - Orchestrator::getStackedChartDBData reduce: function( curr, result ) { result.TotalNew += curr.TotalNew; };
+2015-01-07T06:48:31.985Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:48:38.854Z - getMeasureByDimensionData: parameters ok
+2015-01-07T06:48:38.854Z - getMeasureByDimensionData: filters_strings = [object Object]
+2015-01-07T06:48:38.854Z - Orchestrator::getMeasureByDimensionData
+2015-01-07T06:48:38.854Z - Orchestrator::getMeasureByDimensionDBData
+2015-01-07T06:48:38.860Z - getMeasureByDimensionData: filters_strings = [object Object]
+2015-01-07T06:48:38.860Z - Orchestrator::getMeasureByDimensionData
+2015-01-07T06:48:38.860Z - getMeasureByDimensionData: parameters ok
+2015-01-07T06:48:38.860Z - Orchestrator::getMeasureByDimensionDBData
+2015-01-07T06:48:38.880Z - getBarChartData: parameters ok
+2015-01-07T06:48:38.881Z - getBarChartData: filters_strings = [object Object]
+2015-01-07T06:48:38.883Z - Orchestrator::getStackedMeasureByDimensionDBData
+2015-01-07T06:48:38.882Z - Orchestrator::getStackedMeasureByDimensionData
+2015-01-07T06:48:38.905Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:48:38.905Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:48:38.905Z - Orchestrator::getStackedChartDBData reduce: function( curr, result ) { result.TotalNew += curr.TotalNew; };
+2015-01-07T06:48:38.948Z - Orchestrator::getMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:48:38.948Z - Orchestrator::getMeasureByDimensionDBData filters {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+2015-01-07T06:48:38.949Z - Orchestrator::getStackedChartDBData reduce: function( curr, result ) { result.TotalNew += curr.TotalNew; };
+2015-01-07T06:48:39.021Z - Orchestrator::getStackedMeasureByDimensionDBData collection [object Object]
+2015-01-07T06:48:39.022Z - Orchestrator::getStackedMeasureByDimensionDBData filters {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
