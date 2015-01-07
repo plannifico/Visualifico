@@ -8,12 +8,8 @@
 	<link  rel="stylesheet" type="text/css" href="stylesheets/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="stylesheets/visualifico-chart.css"/>
 	
-	
-	<script type="text/javascript" src="javascript/melt.js"></script>
-	
-	
 	<script src="javascript/d3.min.js" charset="utf-8"></script>
-	<script type="text/javascript" src="javascript/crossfilter.js"></script>
+
 	<script type="text/javascript" src="javascript/visualifico.js"></script>
     <style>
         
@@ -31,10 +27,7 @@
 	
 	var event_dispatcher = new EventDispatcher ();
 	
-	var vbc = new VerticalCategoryBarChart ();
-
-	vbc.init (
-		
+	var vbc = new VerticalCategoryBarChart (		
 		"chart-prices-by-brands",
 		//get_value
 		function (d) {
@@ -47,31 +40,24 @@
 			return d.Brand;
 		},
 		event_dispatcher,
-		{ 
-			"height": 350, 
-			"width": 800,
+		{
 			"collection": "bestSellersItems", 
 			"dimension": "Brand", 
 			"measure": "TotalNew",
-			"useCategoryColors":true,
 			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+		},
+		{ 
+			"height": 350, 
+			"width": 800,			
+			"useCategoryColors":true,
+			"showXAxisLabel":true
 		}
-	);
+	)
+	.show ({"top": 10});	
 	
-	event_dispatcher.addListener (vbc);
-		
-	vbc.loadData ({"top": 10}, 
+	event_dispatcher.addListener (vbc)
 	
-		function (feedback) {	
-		
-			vbc.draw();
-		}
-	);	
-	
-	
-	var hbc = new HorizontalCategoryBarChart ();
-
-	hbc.init (
+	var hbc = new HorizontalCategoryBarChart (
 		
 		"chart-items-by-day",
 		//get_value
@@ -83,33 +69,31 @@
 		function (d) {
 			
 			return d.When;
-		},
+		},		
 		event_dispatcher,
-		{ 	
-			"height": 200, 
-			"width": 800,
+		{
 			"collection": "bestSellersItems", 
 			"dimension": "When", 
 			"measure": "TotalNew",
-			"defaultColor":"rgb(119, 147, 60)",
 			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+		},
+		{ 	
+			"height": 200, 
+			"width": 800,			
+			"defaultColor":"rgb(119, 147, 60)",
+			"showXAxisLabel":true
+			
 		}
-	);
+	).show ({});
 	
 	event_dispatcher.addListener (hbc);
 	
-	hbc.loadData ({}, function (feedback) {	
 	
-		hbc.draw();
-	});	
-	
-	var sbc = new StackedBarChart ();
-
-	sbc.init (		
+	var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",
 		//get_value
 		function (d) {
-			console.log (JSON.stringify(d));
+
 			return d.TotalNew;
 		},
 		//get_key
@@ -123,24 +107,23 @@
 			return d.key [1];
 		},
 		event_dispatcher,
-		{ 	
-			"height": 400, 
-			"width": 800,
+		{
 			"collection": "bestSellersItems", 
 			"dimension": "When", 
 			"stackedDimension": "Brand", 
 			"measure": "TotalNew",
-			"useCategoryColors":true,
 			"defaultFilters": {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+		},
+		{ 	
+			"height": 400, 
+			"width": 800,			
+			"useCategoryColors":true,
+			"showXAxisLabel":true
 		}
-	);
+	).show ({});
 	
 	event_dispatcher.addListener (sbc);
 	
-	sbc.loadData ({}, function (feedback) {	
-	
-		sbc.draw();
-	});	
 	
 </script>
 </body>

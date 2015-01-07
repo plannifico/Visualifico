@@ -37,7 +37,7 @@ EventDispatcher.prototype.dispatch = function (event) {
 
 EventDispatcher.prototype.addListener = function (listener) {
 
-	//console.log ("EventDispatcher::addListener " + listener.getId ());
+	//console.log ("EventDispatcher::addListener " + JSON.stringify (listener));
 
 	this.listeners.push ({"id": listener.getId (), "listener": listener});
 	
@@ -51,7 +51,7 @@ VisualificoChart.prototype.getId = function () {
 	return this.containerId;
 }
 
-VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, dispatcher, parameters, call) {
+VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, dispatcher, query, parameters, call) {
 
 	this.url = "http://localhost:5000/";
 	this.call = call; 
@@ -63,13 +63,17 @@ VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, 
 	//Parameters:
 	this.h = parameters.height;
 	this.w = parameters.width;
-	this.collection = parameters.collection;
-	this.dimension = parameters.dimension;
-	this.measure = parameters.measure;	
+	
+	this.collection = query.collection;
+	this.dimension = query.dimension;
+	this.measure = query.measure;	
+	this.defaultFilters = query.defaultFilters;
 	
 	this.defaultColor = parameters.defaultColor ? parameters.defaultColor : "rgb(85, 142, 213)";
 	
 	this.useCategoryColors = parameters.useCategoryColors ? parameters.useCategoryColors : false;
+	
+	this.showXAxisLabel = parameters.showXAxisLabel ? parameters.showXAxisLabel : false;
 	
 	this.highlightColor = parameters.highlightColor ? parameters.highlightColor : "rgb(228,108,10)";
 	
@@ -77,7 +81,7 @@ VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, 
 	
 	this.dispatcher = dispatcher;
 	
-	this.defaultFilters = parameters.defaultFilters;
+	
 	
 	this.getKey = get_key;
 	this.getValue = get_value;
@@ -229,20 +233,7 @@ VisualificoChart.prototype.addInteraction = function (elements) {
 	});
 }
 
-function BarChart () {};
-
-BarChart.prototype = new VisualificoChart ();
-
-BarChart.prototype.init = function (container_id, get_value, get_key, dispatcher, parameters) {
-
-	this.initMe (container_id, get_value, get_key, dispatcher, parameters, "getMeasureByDimensionData");
-	
-	var color = d3.scale.category20c();
-	
-	
-}
-
-BarChart.prototype.loadData = function (parameters, callback) {
+VisualificoChart.prototype.loadData = function (parameters, callback) {
 	
 	var _this = this;
 	
@@ -255,9 +246,6 @@ BarChart.prototype.loadData = function (parameters, callback) {
 		filters = this.defaultFilters;	
 	}
 	this.currentFilters = JSON.parse( JSON.stringify(filters));
-	
-	//console.log ("loadData this.defaultFilters " + JSON.stringify (this.defaultFilters));
-	//console.log ("loadData this.currentFilters " + JSON.stringify (this.currentFilters));
 	
 	this.currentTop = parameters.top;
 
@@ -288,6 +276,32 @@ BarChart.prototype.loadData = function (parameters, callback) {
 		})
 	} else
 		callback ({"feedback": "error", "error": "missing parameters!"})
+}
+
+VisualificoChart.prototype.show = function (parameters) {
+
+	var _this = this;
+
+	this.loadData (parameters,
+	
+		function (response) {	
+		
+			if (response.feedback == "ok")
+				_this.draw();
+			else if (response.feedback == "error")
+				console.log ("VisualificoChart::show Error: " + response.error);
+	});
+	
+	return this;
+}
+
+function BarChart () {};
+
+BarChart.prototype = new VisualificoChart ();
+
+BarChart.prototype.init = function (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.initMe (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
 }
 
 BarChart.prototype.setResponse = function (data) {
@@ -429,8 +443,28 @@ BarChart.prototype.draw = function () {
 
 	this.drawTextLabels (texts);
 	
+	if (this.showXAxisLabel) this.drawAxisLabels (texts);
+	
 	if (this.legendDataset)
 		this.drawLegend ();		
+}
+
+BarChart.prototype.drawAxisLabels = function () {
+
+	var legend = this.svg.append("g")
+		.attr("class", "x-axis-label")
+		.attr("x", (this.w / 2) - 100)
+		.attr("y", this.getBottomMargin ())
+		.attr("height", 50)
+		.attr("width", 200);
+		
+	legend
+		.append("text")
+		.attr("class", "x-axis-label-text")
+		.attr("x", (this.w - this.getRightMargin () - this.getLeftMargin (0))/2)
+		.attr("y", this.h - (this.getBottomMargin () / 2) + 15)
+		.text (this.xLabel);
+	
 }
 
 BarChart.prototype.drawLegend = function () {
@@ -629,7 +663,14 @@ BarChart.prototype.updateSelection = function () {
 A BarChart that shows an ordinal dimension on the y axis and a measure on the 
 x axis
 */
-function VerticalCategoryBarChart () {}
+function VerticalCategoryBarChart (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
+	
+	this.xLabel = query.measure;
+	
+	return this;
+}
 
 VerticalCategoryBarChart.prototype = new BarChart();
 
@@ -665,7 +706,7 @@ VerticalCategoryBarChart.prototype.getTopMargin = function () {
 
 VerticalCategoryBarChart.prototype.getBottomMargin = function () {
 
-	return 20;
+	return 40;
 }
 
 VerticalCategoryBarChart.prototype.getMaxYLabel = function () {
@@ -733,7 +774,14 @@ VerticalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
 A BarChart that shows an ordinal dimension on the x axis and a measure on the 
 y axis
 */
-function HorizontalCategoryBarChart () {}
+function HorizontalCategoryBarChart (container_id, get_value, get_key, dispatcher, query, parameters) {
+	
+	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
+	
+	this.xLabel = query.dimension;
+	
+	return this;
+}
 
 HorizontalCategoryBarChart.prototype = new BarChart();
 
@@ -838,9 +886,23 @@ HorizontalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
 A StackedBarChart that shows an ordinal dimension on the x axis and a measure on the 
 y axis
 */
-function StackedBarChart () {};
+function StackedBarChart (container_id, get_value, get_key, get_stacked_key, dispatcher, query, parameters) {
+	
+	this.initMe (container_id, get_value, get_key, dispatcher, query, parameters, "getStackedMeasureByDimensionData");
 
-StackedBarChart.prototype = new HorizontalCategoryBarChart ();
+	this.xLabel = query.dimension;
+	
+	if (!parameters.stackedDimension) console.log ("StackedBarChart::init error: missing stackedDimension");	
+	if (!get_stacked_key) console.log ("StackedBarChart::init error: missing get_stacked_keys");
+	
+	this.stackedDimension = query.stackedDimension;
+	this.getStackedKey = get_stacked_key;
+	
+	return this;
+};
+
+StackedBarChart.prototype = Object.create(HorizontalCategoryBarChart.prototype);
+StackedBarChart.prototype.constructor = StackedBarChart;
 
 StackedBarChart.prototype.setResponse = function (data) {
 
@@ -879,19 +941,6 @@ StackedBarChart.prototype.setResponse = function (data) {
 	}
 	
 	console.log ("StackedBarChart::init this.legendDataset = " + JSON.stringify (this.legendDataset));
-}
-
-StackedBarChart.prototype.init = function (container_id, get_value, get_key, get_stacked_key, dispatcher, parameters) {
-
-	this.initMe (container_id, get_value, get_key, dispatcher, parameters, "getStackedMeasureByDimensionData");
-	
-	if (!parameters.stackedDimension) console.log ("StackedBarChart::init error: missing stackedDimension");	
-	if (!get_stacked_key) console.log ("StackedBarChart::init error: missing get_stacked_keys");
-	
-	this.stackedDimension = parameters.stackedDimension;
-	this.getStackedKey = get_stacked_key;
-	
-	
 }
 
 StackedBarChart.prototype.getYScale = function () {

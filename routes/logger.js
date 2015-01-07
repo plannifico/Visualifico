@@ -25,7 +25,7 @@ function Logger () {
 	
 		fs.appendFile(
 		
-			config.files.log, 
+			config.directories.log + "/" + config.files.log, 
 			new Date().toJSON() + " - " +
 			message + "\r\n", function (err) {
 			
