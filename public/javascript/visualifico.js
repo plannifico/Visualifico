@@ -51,7 +51,7 @@ VisualificoChart.prototype.getId = function () {
 	return this.containerId;
 }
 
-VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, dispatcher, query, parameters, call) {
+VisualificoChart.prototype.initChart = function (container_id, get_value, get_key, dispatcher, query, parameters, call) {
 
 	this.url = "http://localhost:5000/";
 	this.call = call; 
@@ -77,7 +77,11 @@ VisualificoChart.prototype.initMe = function (container_id, get_value, get_key, 
 	
 	this.highlightColor = parameters.highlightColor ? parameters.highlightColor : "rgb(228,108,10)";
 	
-	this.selectionColor = parameters.selectionColor ? parameters.selectionColor : "rgb(31,73,125)"
+	this.selectionColor = parameters.selectionColor ? parameters.selectionColor : "rgb(31,73,125)";
+	
+	this.numberOfXTicks = parameters.numberOfXTicks ? parameters.numberOfXTicks : 5;
+	
+	this.numberOfYTicks = parameters.numberOfYTicks ? parameters.numberOfYTicks : 5;
 	
 	this.dispatcher = dispatcher;
 	
@@ -229,7 +233,7 @@ VisualificoChart.prototype.addInteraction = function (elements) {
 		d3.select(this)
 			.transition()
 			.duration(250)
-			.attr("fill", function (d,i) {return _this.returnBarColor (d)});
+			.attr("fill", function (d,i) {return _this.returnColor (d)});
 	});
 }
 
@@ -295,179 +299,13 @@ VisualificoChart.prototype.show = function (parameters) {
 	return this;
 }
 
-function BarChart () {};
-
-BarChart.prototype = new VisualificoChart ();
-
-BarChart.prototype.init = function (container_id, get_value, get_key, dispatcher, query, parameters) {
-
-	this.initMe (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
-}
-
-BarChart.prototype.setResponse = function (data) {
+VisualificoChart.prototype.setResponse = function (data) {
 
 	this.oldGroup = this.group;
 	this.group = data.response.result;
 	this.domain = data.response.domain;
 }
-
-BarChart.prototype.addXAxis = function (x_scale) {
-
-	var xAxis = d3.svg.axis ()
-		.scale (x_scale)
-		.orient ("bottom")
-		.ticks (5);
-		
-	this.svg.append("g")
-		.attr ("class","axis xaxis")
-		.call (xAxis)
-		.attr ("transform", "translate(0," + (this.h - this.getBottomMargin ()) + ")");
-		
-	//console.log ("addXAxis append ok");
-}
-
-BarChart.prototype.addYAxis = function (y_scale) {
-
-	var yAxis = d3.svg.axis ()
-		.scale (y_scale)
-		.orient ("left");
-		
-	this.svg.append("g")
-		.attr ("class","axis yaxis")
-		.attr ("transform", "translate(" + (this.getYAxisMargin () + this.getMaxYLabel() * 5) + ",0)")
-		.call (yAxis);
-}
-
-BarChart.prototype.drawBars = function (bars) {
-
-	var _this = this;
-	
-	var x_scale = this.getXScale (
-		this.getLeftMargin (this.getMaxYLabel()), 
-		this.getRightMargin ());
-		
-	var y_scale = this.getYScale ();
-
-	bars.attr ("x", function (d) {
-		
-		return _this.getX (d, x_scale);
-	})
-	.attr ("y", function (d) {
-	
-		return _this.getY (d, y_scale);
-	})
-	.attr ("width", function (d) {
-	
-		return _this.getWidth (d, x_scale);			
-	})
-	.attr ("height", function (d) {
-	
-		return _this.getHeigth (d, y_scale);			
-	})
-	.attr("fill", function (d,i) {
-
-		return _this.returnBarColor(d);
-	});
-	return bars;
-}
-
-BarChart.prototype.drawTextLabels = function (texts) {
-
-	var _this = this;
-
-	var y_scale = this.getYScale ();
-	
-	var x_scale = this.getXScale (
-		this.getLeftMargin (this.getMaxYLabel ()), 
-		this.getRightMargin ());
-	
-	texts.attr("class", "bar-text")
-		.attr("x", function(d) {
-			return _this.getLabelX (d, x_scale);
-		})
-		.attr("y", function(d) {
-			return _this.getLabelY (d, y_scale);
-		})
-		.text(function(d) {
-		
-			return _this.getValue (d);
-		});	
-}
-
-BarChart.prototype.draw = function () {
-	
-	var _this = this;
-
-	var svg = d3.select ("#" + this.containerId).append ("svg");
-	/*
-	this.colorScale = 
-		d3.scale.ordinal().domain(this.domain).range(d3.scale.category20());
-*/
-	this.colorScale = d3.scale.category20();
-	//console.log ("BarChart::draw this.domain " + JSON.stringify (this.domain));
-	//console.log ("BarChart::draw this.colorScale " + this.colorScale ("LAMPA"));
-	
-	this.svg = svg;
-
-	var h = this.h;
-	var w = this.w;				
-		
-	var get_key = this.getKey;
-	var get_value = this.getValue;
-
-	svg.attr ("width", w);
-	svg.attr ("height", h);
-
-	var y_scale = this.getYScale ();
-	
-	var x_scale = this.getXScale (
-		this.getLeftMargin (this.getMaxYLabel ()), 
-		this.getRightMargin ());
-	
-	this.addXAxis (x_scale);
-	this.addYAxis (y_scale);
-	
-	var bars = svg.selectAll ("rect")
-		.data (this.group)
-		.enter ()
-		.append("rect");
-		
-	this.drawBars (bars);
-	
-	this.addInteraction (bars);
-
-	var texts = svg.selectAll(".bar-text")
-		.data (this.group)
-		.enter ()
-		.append ("text");
-
-	this.drawTextLabels (texts);
-	
-	if (this.showXAxisLabel) this.drawAxisLabels (texts);
-	
-	if (this.legendDataset)
-		this.drawLegend ();		
-}
-
-BarChart.prototype.drawAxisLabels = function () {
-
-	var legend = this.svg.append("g")
-		.attr("class", "x-axis-label")
-		.attr("x", (this.w / 2) - 100)
-		.attr("y", this.getBottomMargin ())
-		.attr("height", 50)
-		.attr("width", 200);
-		
-	legend
-		.append("text")
-		.attr("class", "x-axis-label-text")
-		.attr("x", (this.w - this.getRightMargin () - this.getLeftMargin (0))/2)
-		.attr("y", this.h - (this.getBottomMargin () / 2) + 15)
-		.text (this.xLabel);
-	
-}
-
-BarChart.prototype.drawLegend = function () {
+VisualificoChart.prototype.drawLegend = function () {
 
 	console.log ("BarChart::drawLegend " + JSON.stringify (this.legendDataset));
 
@@ -507,9 +345,9 @@ BarChart.prototype.drawLegend = function () {
 		});
 }
 
-BarChart.prototype.updateLegend = function () {
+VisualificoChart.prototype.updateLegend = function () {
 
-	console.log ("BarChart::updateLegend");
+	console.log ("VisualificoChart::updateLegend");
 	
 	this.svg.selectAll (".legend-label")
 		.remove();
@@ -523,9 +361,187 @@ BarChart.prototype.updateLegend = function () {
 	this.drawLegend();
 }
 
-BarChart.prototype.update = function () {
+VisualificoChart.prototype.addXAxis = function (x_scale) {
+
+	var xAxis = d3.svg.axis ()
+		.scale (x_scale)
+		.orient ("bottom")
+		.ticks (this.numberOfXTicks);
+		
+	this.svg.append("g")
+		.attr ("class","axis xaxis")
+		.call (xAxis)
+		.attr ("transform", "translate(0," + (this.h - this.getBottomMargin () + 5) + ")");
+		
+	//console.log ("addXAxis append ok");
+}
+
+VisualificoChart.prototype.addYAxis = function (y_scale) {
+
+	var yAxis = d3.svg.axis ()
+		.scale (y_scale)
+		.orient ("left")
+		.ticks (this.numberOfYTicks);
+		
+	this.svg.append("g")
+		.attr ("class","axis yaxis")
+		.attr ("transform", "translate(" + (this.getYAxisMargin () + this.getMaxYLabel() * 5) + ",0)")
+		.call (yAxis);
+}
+
 	
-	console.log ("BarChart::update");
+VisualificoChart.prototype.returnColor = function (d) {
+	
+	//console.log ("color (this.getKey(d)) " + this.colorScale (this.getKey(d))); 
+	
+	if (this.useCategoryColors) return this.colorScale (this.getKey(d));	
+	
+	return this.defaultColor;
+}
+
+
+VisualificoChart.prototype.drawAxisLabels = function () {
+
+	var legend = this.svg.append("g")
+		.attr("class", "x-axis-label")
+		.attr("x", (this.w / 2) - 100)
+		.attr("y", this.getBottomMargin ())
+		.attr("height", 50)
+		.attr("width", 200);
+		
+	legend
+		.append("text")
+		.attr("class", "x-axis-label-text")
+		//.attr("x", (this.w - this.getRightMargin () - this.getLeftMargin (0))/2)
+		.attr("x", 5)
+		.attr("y", this.h - (this.getBottomMargin () / 2) + 5)
+		.text (this.xLabel);
+	
+}
+
+function ShapeChart () {};
+
+ShapeChart.prototype = new VisualificoChart ();
+
+ShapeChart.prototype.drawShapes = function (shapes) {
+
+	var _this = this;
+	
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ());
+		
+	var y_scale = this.getYScale ();
+
+	shapes.attr ("x", function (d) {
+		
+		return _this.getX (d, x_scale);
+	})
+	.attr ("y", function (d) {
+	
+		return _this.getY (d, y_scale);
+	})
+	.attr ("width", function (d) {
+	
+		return _this.getWidth (d, x_scale);			
+	})
+	.attr ("height", function (d) {
+	
+		return _this.getHeigth (d, y_scale);			
+	})
+	.attr("fill", function (d,i) {
+
+		return _this.returnColor(d);
+	})
+	.append("svg:title")
+	.text(function (d,i) {
+
+		return _this.dimension + " = " + _this.getKey (d) + ", " + _this.measure + " = " + _this.getValue (d);
+	});
+	return shapes;
+}
+
+ShapeChart.prototype.drawShapeTextLabels = function (prefix, texts) {
+
+	var _this = this;
+
+	var y_scale = this.getYScale ();
+	
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel ()), 
+		this.getRightMargin ());
+	
+	texts.attr("class", prefix + "-text")
+		.attr("x", function(d) {
+			return _this.getLabelX (d, x_scale);
+		})
+		.attr("y", function(d) {
+			return _this.getLabelY (d, y_scale);
+		})
+		.text(function(d) {
+		
+			return _this.getValue (d);
+		});	
+}
+
+ShapeChart.prototype.drawShapeChart = function (shape, class_prefix) {
+	
+	var _this = this;
+
+	var svg = d3.select ("#" + this.containerId).append ("svg");
+	/*
+	this.colorScale = 
+		d3.scale.ordinal().domain(this.domain).range(d3.scale.category20());
+*/
+	this.colorScale = d3.scale.category20();
+	//console.log ("BarChart::draw this.domain " + JSON.stringify (this.domain));
+	//console.log ("BarChart::draw this.colorScale " + this.colorScale ("LAMPA"));
+	
+	this.svg = svg;
+
+	var h = this.h;
+	var w = this.w;				
+		
+	var get_key = this.getKey;
+	var get_value = this.getValue;
+
+	svg.attr ("width", w);
+	svg.attr ("height", h);
+
+	var y_scale = this.getYScale ();
+	
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel ()), 
+		this.getRightMargin ());
+	
+	this.addXAxis (x_scale);
+	this.addYAxis (y_scale);
+	
+	var shapes = svg.selectAll (shape)
+		.data (this.group)
+		.enter ()
+		.append(shape);
+		
+	this.drawBars (shapes);
+	
+	this.addInteraction (shapes);
+
+	var texts = svg.selectAll("." + class_prefix + "-text")
+		.data (this.group)
+		.enter ()
+		.append ("text");
+
+	this.drawTextLabels (texts);
+	
+	if (this.showXAxisLabel) this.drawAxisLabels (texts);
+	
+	if (this.legendDataset)
+		this.drawLegend ();		
+}
+
+ShapeChart.prototype.updateShapes = function (shape, prefix) {
+	
+	console.log ("ShapeChart::update");
 	
 	var _this = this;
 	var svg = this.svg;
@@ -548,12 +564,12 @@ BarChart.prototype.update = function () {
 	//Mark the bars
 	if (this.oldGroup) {
 
-		svg.selectAll ("rect")
+		svg.selectAll (shape)
 			.data (this.oldGroup)
 			.classed ("toremove", true);
 	}
 	
-	var bars = svg.selectAll ("rect")
+	var bars = svg.selectAll (shape)
 		.data (this.group)
 		.classed ("toremove", false)
 		.transition ()
@@ -576,11 +592,11 @@ BarChart.prototype.update = function () {
 			return _this.getHeigth (d, y_scale);			
 		});
 		
-	svg.selectAll ("rect.toremove")
+	svg.selectAll (shape + ".toremove")
 		.data (this.oldGroup)
 		.remove();	
 
-	var bars = svg.selectAll ("rect")
+	var bars = svg.selectAll (shape)
 		.data (this.group)
 		.enter ()
 		.append("rect");
@@ -589,11 +605,11 @@ BarChart.prototype.update = function () {
 		
 	this.addInteraction (bars);
 		
-	svg.selectAll(".bar-text")
+	svg.selectAll("." + prefix + "-text")
 		.data (this.oldGroup)
 		.classed ("toremove", true);
 	
-	svg.selectAll(".bar-text")
+	svg.selectAll("." + prefix + "-text")
 		.data (this.group)
 		.classed ("toremove", false)
 		.attr("x", function(d) {
@@ -607,11 +623,11 @@ BarChart.prototype.update = function () {
 			return get_value (d);
 		});
 	
-	svg.selectAll(".bar-text.toremove")
+	svg.selectAll("." + prefix + "-text.toremove")
 		.data (this.oldGroup)
 		.remove ();
 		
-	var texts = svg.selectAll(".bar-text")
+	var texts = svg.selectAll("." + prefix + "-text")
 		.data (this.group)
 		.enter ()
 		.append ("text");
@@ -622,17 +638,8 @@ BarChart.prototype.update = function () {
 	
 	if (this.legendDataset) this.updateLegend();
 }
-	
-BarChart.prototype.returnBarColor = function (d) {
-	
-	//console.log ("color (this.getKey(d)) " + this.colorScale (this.getKey(d))); 
-	
-	if (this.useCategoryColors) return this.colorScale (this.getKey(d));	
-	
-	return this.defaultColor;
-}
-	
-BarChart.prototype.updateSelection = function () {
+
+ShapeChart.prototype.updateShapeSelection = function (shape) {
 
 	var color = d3.scale.category20c();
 	
@@ -640,12 +647,12 @@ BarChart.prototype.updateSelection = function () {
 	
 	if (this.selected.length == 0) {
 	
-		this.svg.selectAll ("rect")
+		this.svg.selectAll (shape)
 			.data (this.group)
-			.attr("fill", function (d) {return _this.returnBarColor(d, color)});	
+			.attr("fill", function (d) {return _this.returnColor(d, color)});	
 	} else {
 	
-		this.svg.selectAll ("rect")
+		this.svg.selectAll (shape)
 			.data (this.group)
 			.attr("fill", function (d,i) {
 			
@@ -657,6 +664,44 @@ BarChart.prototype.updateSelection = function () {
 	}	
 }
 
+/*A ShapeChart that draws shape as bars*/
+function BarChart () {};
+
+BarChart.prototype = new ShapeChart ();
+
+BarChart.prototype.init = function (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
+}
+
+BarChart.prototype.drawBars = function (bars) {
+
+	return this.drawShapes (bars);	
+}
+
+BarChart.prototype.drawTextLabels = function (texts) {
+
+	this.drawShapeTextLabels ("bar", texts);
+}
+
+BarChart.prototype.draw = function () {
+	
+	this.drawShapeChart ("rect", "bar");	
+}
+
+
+BarChart.prototype.update = function () {
+	
+	console.log ("BarChart::update");
+	
+	this.updateShapes ("rect", "bar");	
+	
+}
+	
+BarChart.prototype.updateSelection = function () {
+
+	this.updateShapeSelection ("rect");
+}
 
 
 /*
@@ -768,6 +813,7 @@ VerticalCategoryBarChart.prototype.getLabelX = function (d, x_scale) {
 VerticalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
 	
 	return this.getY (d, y_scale) + (this.getHeigth (d) / 2);
+	
 }	
 
 /*
@@ -879,7 +925,11 @@ HorizontalCategoryBarChart.prototype.getLabelX = function (d, x_scale) {
 
 HorizontalCategoryBarChart.prototype.getLabelY = function (d, y_scale) {
 	
-	return y_scale (this.getValue (d)) + 20;
+	if (this.getHeigth (d, y_scale) > 20)
+		return y_scale (this.getValue (d)) + 15;
+	else 
+		return 9999;
+	
 }	
 
 /*
@@ -888,7 +938,7 @@ y axis
 */
 function StackedBarChart (container_id, get_value, get_key, get_stacked_key, dispatcher, query, parameters) {
 	
-	this.initMe (container_id, get_value, get_key, dispatcher, query, parameters, "getStackedMeasureByDimensionData");
+	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getStackedMeasureByDimensionData");
 
 	this.xLabel = query.dimension;
 	
@@ -967,7 +1017,7 @@ StackedBarChart.prototype.getY = function (d, y_scale) {
 	return to_return;
 }	
 
-StackedBarChart.prototype.returnBarColor = function (d) {
+StackedBarChart.prototype.returnColor = function (d) {
 		
 	//console.log ("color (this.getKey(d)) " + this.getStackedKey); 
 	
@@ -1005,3 +1055,149 @@ StackedBarChart.prototype.getSelection = function (d) {
 	
 	return selection;
 }
+
+/*A ShapeChart that draws shape as circles*/
+function BubbleChart () {};
+BubbleChart.prototype = new ShapeChart ();
+
+BubbleChart.prototype.init = function (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
+}
+
+BubbleChart.prototype.drawBars = function (bubbles) {
+
+	return this.drawShapes (bubbles);	
+}
+
+BubbleChart.prototype.drawTextLabels = function (texts) {
+
+	this.drawShapeTextLabels ("bubble", texts);
+}
+
+BubbleChart.prototype.draw = function () {
+	
+	this.drawShapeChart ("circle", "bubble");	
+}
+
+
+BubbleChart.prototype.update = function () {
+	
+	console.log ("BubbleChart::update");
+	
+	this.updateShapes ("circle", "bubble");		
+}
+	
+BubbleChart.prototype.updateSelection = function () {
+
+	this.updateShapeSelection ("circle");
+}
+
+/*A Bubble chart that shows x measures*/
+function xDBubbleChart (container_id, get_value, get_key, dispatcher, query, parameters) {
+	
+	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
+	
+	this.xLabel = query.dimension;
+	
+	return this;
+}
+
+xDBubbleChart.prototype = new BubbleChart ();
+
+xDBubbleChart.prototype.getYScale = function () {
+	
+	var get_value = this.getValue;
+	var y_scale = d3.scale.linear ();
+	
+	y_scale.domain ([0, d3.max (this.group, function (d) { return get_value (d); })]);
+	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
+	
+	return y_scale;
+}
+
+xDBubbleChart.prototype.getXScale = function (l_padding, right_margin) {
+	
+	var x_scale = d3.scale.ordinal ();	
+
+	//console.log ("HorizontalCategoryBarChart this.domain " + this.domain);
+	
+	if ((this.domain.length > 0) /*&& (!isNaN (this.domain)[0])*/) {
+	
+		x_scale.domain (this.domain);		
+		//x_scale.rangeRoundBands ([l_padding, this.w - right_margin]);
+		x_scale.rangeRoundBands ([0, this.w - this.getRightMargin ()], 0.5, 1);
+	}
+	return x_scale;
+}
+
+xDBubbleChart.prototype.getTopMargin = function () {
+
+	return 10;
+}
+
+xDBubbleChart.prototype.getBottomMargin = function () {
+
+	return 30;
+}
+
+xDBubbleChart.prototype.getMaxYLabel = function () {
+
+	/*var get_key = this.getKey;
+	return d3.max (this.group, function (d) { return get_key(d).length; });*/
+	return 0;
+}
+
+xDBubbleChart.prototype.getLeftMargin = function (max_y_label) {
+
+	return 85 + (max_y_label * 4);
+}
+
+xDBubbleChart.prototype.getRightMargin = function () {
+	
+	return ((this.legendDataset) ? 30 : 10);
+}
+
+xDBubbleChart.prototype.getYAxisMargin = function () {
+
+	return 40;
+}
+
+xDBubbleChart.prototype.getY = function (d, y_scale) {		
+	
+	var get_value = this.getValue;
+		
+	return y_scale (get_value (d));
+}	
+
+xDBubbleChart.prototype.getX = function (d, x_scale) {
+	
+	var get_key = this.getKey;	
+	return x_scale (get_key (d)) - (x_scale.rangeBand() / 2);
+}
+
+xDBubbleChart.prototype.getWidth = function (d, x_scale) {
+
+	
+	return (this.w - this.getRightMargin () - this.getLeftMargin (0)) / (this.domain.length + 1);
+}	
+
+xDBubbleChart.prototype.getHeigth = function (d, y_scale) {
+
+	var get_value = this.getValue;
+	
+	return y_scale (0) - y_scale (get_value (d));
+}
+
+xDBubbleChart.prototype.getLabelX = function (d, x_scale) {
+
+	return x_scale (this.getKey (d)) + (x_scale.rangeBand() / 2) - (((this.getValue (d) + "")).length * 2);
+}	
+
+xDBubbleChart.prototype.getLabelY = function (d, y_scale) {
+	
+	if (this.getHeigth (d, y_scale) > 20)
+		return y_scale (this.getValue (d)) + 15;
+	else 
+		return 9999;	
+}	

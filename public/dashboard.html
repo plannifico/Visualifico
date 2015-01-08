@@ -17,7 +17,7 @@
 </head>
 <body>
 	<div class="main-container">
-	
+		<div id="chart-measures-by-brands"></div>
 		<div id="chart-brands-items-by-day"></div>
 		<div id="chart-prices-by-brands"></div>
 		<div id="chart-items-by-day"></div>
@@ -86,8 +86,7 @@
 		}
 	).show ({});
 	
-	event_dispatcher.addListener (hbc);
-	
+	event_dispatcher.addListener (hbc);	
 	
 	var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",
@@ -123,6 +122,36 @@
 	).show ({});
 	
 	event_dispatcher.addListener (sbc);
+	
+	var xbc = new xDBubbleChart (		
+		"chart-measures-by-brands",
+		//get_value
+		function (d) {
+		
+			return d.TotalNew;
+		},
+		//get_key
+		function (d) {
+			
+			return d.When;
+		},		
+		event_dispatcher,
+		{
+			"collection": "bestSellersItems", 
+			"dimension": "When", 
+			"measure": "TotalNew",
+			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+		},
+		{ 	
+			"height": 500, 
+			"width": 800,			
+			"defaultColor":"rgb(119, 147, 60)",
+			"showXAxisLabel":true
+			
+		}
+	).show ({});
+	
+	event_dispatcher.addListener (xbc);
 	
 	
 </script>

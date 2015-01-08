@@ -39,6 +39,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	font-weight: bold;
 }
 
+.bubble-text {
+	font-family: sans-serif;
+	font-size: 10px;
+	fill: white;
+	font-weight: bold;
+}
+
 .legend {
 	padding: 5px;
 	font: 10px sans-serif;
