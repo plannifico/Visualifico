@@ -43,7 +43,7 @@
 		{
 			"collection": "bestSellersItems", 
 			"dimension": "Brand", 
-			"measure": "TotalNew",
+			"measure": '{"measures":["TotalNew"]}',
 			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
 		},
 		{ 
@@ -74,7 +74,7 @@
 		{
 			"collection": "bestSellersItems", 
 			"dimension": "When", 
-			"measure": "TotalNew",
+			"measure": '{"measures":["TotalNew"]}',
 			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
 		},
 		{ 	
@@ -110,7 +110,7 @@
 			"collection": "bestSellersItems", 
 			"dimension": "When", 
 			"stackedDimension": "Brand", 
-			"measure": "TotalNew",
+			"measure": '{"measures":["TotalNew"]}',
 			"defaultFilters": {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
 		},
 		{ 	
@@ -125,21 +125,19 @@
 	
 	var xbc = new xDBubbleChart (		
 		"chart-measures-by-brands",
-		//get_value
-		function (d) {
-		
-			return d.TotalNew;
-		},
-		//get_key
-		function (d) {
-			
-			return d.When;
-		},		
+		//Get the ball attribute
+		function (d) {return d.Brand},
+		//Get the x axis measure
+		function (d) {return d.TotalNew},
+		//Get the y axis measure
+		function (d) {return (d.TotalNew != 0) ? d.Price/d.TotalNew : 0;},
+		//Get the ball size measure
+		function (d) {return d.SalesRank;},
 		event_dispatcher,
 		{
 			"collection": "bestSellersItems", 
-			"dimension": "When", 
-			"measure": "TotalNew",
+			"dimension": "Brand", 
+			"measure": '{"measures":["TotalNew", "SalesRank", "Price"]}',
 			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
 		},
 		{ 	

@@ -68,13 +68,17 @@ app.get('/getMeasureByDimensionData', function(req, res) {
 				});
 			}*/
 		}
-		var measures = req.query.measure.split (";");
+		var measure = JSON.parse(req.query.measure);
 		
+		var measures = measure.measures ? measure.measures : measure;
+	
 		o.getMeasureByDimensionData (
 			res, req.query.collection, req.query.dim, measures, req.query.top ? req.query.top : -1, filters,
 			function (response) {
 				res.json (response);
-			});			
+			});
+
+					
 	}
 	else
 		res.json ({
@@ -110,8 +114,12 @@ app.get('/getStackedMeasureByDimensionData', function(req, res) {
 			}*/
 		}
 		
+		var measure = JSON.parse(req.query.measure);
+		
+		var measures = measure.measures ? measure.measures : measure;
+		
 		o.getStackedMeasureByDimensionData (
-			res, req.query.collection, req.query.dim, req.query.stackedDim, req.query.measure, req.query.top ? req.query.top : -1, filters,
+			res, req.query.collection, req.query.dim, req.query.stackedDim, measures, req.query.top ? req.query.top : -1, filters,
 			function (response) {
 				res.json (response);
 			});			

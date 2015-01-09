@@ -50,7 +50,7 @@ module.exports = function Orchestrator () {
 					
 					for (var measure in _measures) {
 					
-						reduce += "result." + _measures [measure] + " += curr."+ _measures [measure] + "; ";
+						reduce += "result." + _measures [measure] + " += curr."+ _measures [measure] + " ? curr."+ _measures [measure] +" : 0; ";
 						init [_measures [measure]] = 0;
 					}
 					
@@ -82,7 +82,7 @@ module.exports = function Orchestrator () {
 		});
 	}
 	
-	this.getStackedMeasureByDimensionDBData = function (_collection, _dim, _stacked_dim, _measure, _filters, callback) {
+	this.getStackedMeasureByDimensionDBData = function (_collection, _dim, _stacked_dim, _measures, _filters, callback) {
 	
 		logger.log ("Orchestrator::getStackedMeasureByDimensionDBData");
 	
@@ -105,9 +105,18 @@ module.exports = function Orchestrator () {
 					selection [_dim] = 1;
 					selection [_stacked_dim] = 1;
 					
-					var reduce = "function( curr, result ) {result.key=[result." + _dim + ",result." + _stacked_dim + "];result." + _measure + " += curr. "+ _measure +";};"
+					var reduce = "function( curr, result ) { ";
+					
 					var init = {};
-					init [_measure] = 0;
+					
+					for (var measure in _measures) {
+					
+						reduce += "result.key = [curr."+_dim+",curr." + _stacked_dim + "]; "+
+								  "result." + _measures [measure] + " += curr."+ _measures [measure] + " ? curr."+ _measures [measure] +" : 0; ";
+						init [_measures [measure]] = 0;
+					}
+					
+					reduce += "};";
 					
 					collection.group (selection, _filters, init, reduce, 
 					
@@ -119,9 +128,6 @@ module.exports = function Orchestrator () {
 							var selection = {};							
 							selection [_dim] = 1;
 							
-							var reduce = "function( curr, result ) {result." + _measure + " += curr. "+ _measure +";};";
-							var init = {};
-							init [_measure] = 0;
 							collection.group (selection, _filters, init, reduce,
 							
 								function (err, group_by_dim_data) {

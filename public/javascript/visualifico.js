@@ -433,31 +433,16 @@ ShapeChart.prototype.drawShapes = function (shapes) {
 		
 	var y_scale = this.getYScale ();
 
-	shapes.attr ("x", function (d) {
-		
-		return _this.getX (d, x_scale);
-	})
-	.attr ("y", function (d) {
-	
-		return _this.getY (d, y_scale);
-	})
-	.attr ("width", function (d) {
-	
-		return _this.getWidth (d, x_scale);			
-	})
-	.attr ("height", function (d) {
-	
-		return _this.getHeigth (d, y_scale);			
-	})
-	.attr("fill", function (d,i) {
+	shapes
+		.attr("fill", function (d,i) {
 
-		return _this.returnColor(d);
-	})
-	.append("svg:title")
-	.text(function (d,i) {
+			return _this.returnColor(d);
+		})
+		.append("svg:title")
+		.text(function (d,i) {
 
-		return _this.dimension + " = " + _this.getKey (d) + ", " + _this.measure + " = " + _this.getValue (d);
-	});
+			return _this.dimension + " = " + _this.getKey (d) + ", " + JSON.parse(_this.measure).measures[0] + " = " + _this.getValue (d);
+		});
 	return shapes;
 }
 
@@ -522,7 +507,7 @@ ShapeChart.prototype.drawShapeChart = function (shape, class_prefix) {
 		.enter ()
 		.append(shape);
 		
-	this.drawBars (shapes);
+	this.addShapes (shapes);
 	
 	this.addInteraction (shapes);
 
@@ -601,7 +586,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 		.enter ()
 		.append("rect");
 		
-	this.drawBars (bars);
+	this.addShapes (bars);
 		
 	this.addInteraction (bars);
 		
@@ -674,9 +659,34 @@ BarChart.prototype.init = function (container_id, get_value, get_key, dispatcher
 	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
 }
 
-BarChart.prototype.drawBars = function (bars) {
+BarChart.prototype.addShapes = function (bars) {
 
-	return this.drawShapes (bars);	
+	var _this = this;
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ());
+		
+	var y_scale = this.getYScale ();
+
+	var bars = this.drawShapes (bars)
+		.attr ("x", function (d) {
+		
+			return _this.getX (d, x_scale);
+		})
+		.attr ("y", function (d) {
+		
+			return _this.getY (d, y_scale);
+		})	
+		.attr ("width", function (d) {
+	
+			return _this.getWidth (d, x_scale);			
+		})
+		.attr ("height", function (d) {
+		
+			return _this.getHeigth (d, y_scale);			
+		});
+		
+	return bars;
 }
 
 BarChart.prototype.drawTextLabels = function (texts) {
@@ -712,7 +722,7 @@ function VerticalCategoryBarChart (container_id, get_value, get_key, dispatcher,
 
 	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
 	
-	this.xLabel = query.measure;
+	this.xLabel = JSON.parse(query.measure).measures[0];
 	
 	return this;
 }
@@ -851,7 +861,7 @@ HorizontalCategoryBarChart.prototype.getXScale = function (l_padding, right_marg
 	
 		x_scale.domain (this.domain);		
 		//x_scale.rangeRoundBands ([l_padding, this.w - right_margin]);
-		x_scale.rangeRoundBands ([0, this.w - this.getRightMargin ()], 0.5, 1);
+		x_scale.rangeRoundBands ([this.getLeftMargin (0), this.w - this.getRightMargin ()], 0.5, 1);
 	}
 	return x_scale;
 }
@@ -900,13 +910,13 @@ HorizontalCategoryBarChart.prototype.getY = function (d, y_scale) {
 HorizontalCategoryBarChart.prototype.getX = function (d, x_scale) {
 	
 	var get_key = this.getKey;	
-	return x_scale (get_key (d)) - (x_scale.rangeBand() / 2);
+	return x_scale (this.getKey (d)) + (x_scale.rangeBand() / 2) - (this.getWidth (d, x_scale) / 2);
 }
 
 HorizontalCategoryBarChart.prototype.getWidth = function (d, x_scale) {
 
 	//console.log ("HorizontalCategoryBarChart::getWidth " + this.getRightMargin ());
-	return (this.w - this.getRightMargin () - this.getLeftMargin (0)) / (this.domain.length + 1);
+	return (this.w - this.getRightMargin () - this.getLeftMargin (0)) / (this.domain.length * 1.4);
 }	
 
 HorizontalCategoryBarChart.prototype.getHeigth = function (d, y_scale) {
@@ -1065,9 +1075,29 @@ BubbleChart.prototype.init = function (container_id, get_value, get_key, dispatc
 	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
 }
 
-BubbleChart.prototype.drawBars = function (bubbles) {
-
-	return this.drawShapes (bubbles);	
+BubbleChart.prototype.addShapes = function (bubbles) {
+	var _this = this;
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ());
+		
+	var y_scale = this.getYScale ();
+	var b_scale = this.getBubbleScale ();
+	
+	var bubbles = this.drawShapes (bubbles)
+		.attr ("cx", function (d) {
+		
+			return _this.getX (d, x_scale);
+		})
+		.attr ("cy", function (d) {
+		
+			return _this.getY (d, y_scale);
+		})	
+		.attr ("r", function (d) {
+			
+			return b_scale(_this.getBubbleValue (d));	
+		});
+	return bubbles;
 }
 
 BubbleChart.prototype.drawTextLabels = function (texts) {
@@ -1094,11 +1124,15 @@ BubbleChart.prototype.updateSelection = function () {
 }
 
 /*A Bubble chart that shows x measures*/
-function xDBubbleChart (container_id, get_value, get_key, dispatcher, query, parameters) {
+function xDBubbleChart (container_id, get_key, get_x_value, get_y_value, get_bubble_value, dispatcher, query, parameters) {
 	
-	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
+	this.init (container_id, get_x_value, get_key, dispatcher, query, parameters);
 	
 	this.xLabel = query.dimension;
+	
+	this.getXValue = get_x_value;
+	this.getYValue = get_y_value;
+	this.getBubbleValue = get_bubble_value;
 	
 	return this;
 }
@@ -1107,10 +1141,10 @@ xDBubbleChart.prototype = new BubbleChart ();
 
 xDBubbleChart.prototype.getYScale = function () {
 	
-	var get_value = this.getValue;
+	var get_y_value = this.getYValue;
 	var y_scale = d3.scale.linear ();
 	
-	y_scale.domain ([0, d3.max (this.group, function (d) { return get_value (d); })]);
+	y_scale.domain ([0, d3.max (this.group, function (d) { return get_y_value (d); })]);
 	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
 	
 	return y_scale;
@@ -1118,17 +1152,24 @@ xDBubbleChart.prototype.getYScale = function () {
 
 xDBubbleChart.prototype.getXScale = function (l_padding, right_margin) {
 	
-	var x_scale = d3.scale.ordinal ();	
-
-	//console.log ("HorizontalCategoryBarChart this.domain " + this.domain);
+	var get_x_value = this.getXValue;
+	var x_scale = d3.scale.linear ();
 	
-	if ((this.domain.length > 0) /*&& (!isNaN (this.domain)[0])*/) {
+	x_scale.domain ([0, d3.max (this.group, function (d) { return get_x_value (d); })]);
+	x_scale.range ([this.getLeftMargin(0),this.w - this.getRightMargin()]);
 	
-		x_scale.domain (this.domain);		
-		//x_scale.rangeRoundBands ([l_padding, this.w - right_margin]);
-		x_scale.rangeRoundBands ([0, this.w - this.getRightMargin ()], 0.5, 1);
-	}
 	return x_scale;
+}
+
+xDBubbleChart.prototype.getBubbleScale = function () {
+	
+	var get_bubble_value = this.getBubbleValue;
+	var b_scale = d3.scale.linear ();
+	
+	b_scale.domain ([0, d3.max (this.group, function (d) { return get_bubble_value (d); })]);
+	b_scale.range ([5, 20]);
+	
+	return b_scale;
 }
 
 xDBubbleChart.prototype.getTopMargin = function () {
@@ -1165,39 +1206,24 @@ xDBubbleChart.prototype.getYAxisMargin = function () {
 
 xDBubbleChart.prototype.getY = function (d, y_scale) {		
 	
-	var get_value = this.getValue;
+	var get_value = this.getYValue;
 		
 	return y_scale (get_value (d));
 }	
 
 xDBubbleChart.prototype.getX = function (d, x_scale) {
 	
-	var get_key = this.getKey;	
-	return x_scale (get_key (d)) - (x_scale.rangeBand() / 2);
-}
-
-xDBubbleChart.prototype.getWidth = function (d, x_scale) {
-
-	
-	return (this.w - this.getRightMargin () - this.getLeftMargin (0)) / (this.domain.length + 1);
-}	
-
-xDBubbleChart.prototype.getHeigth = function (d, y_scale) {
-
-	var get_value = this.getValue;
-	
-	return y_scale (0) - y_scale (get_value (d));
+	var get_key = this.getXValue;	
+	return x_scale (get_key (d));
 }
 
 xDBubbleChart.prototype.getLabelX = function (d, x_scale) {
 
-	return x_scale (this.getKey (d)) + (x_scale.rangeBand() / 2) - (((this.getValue (d) + "")).length * 2);
+	return x_scale (this.getValue (d));
 }	
 
 xDBubbleChart.prototype.getLabelY = function (d, y_scale) {
 	
-	if (this.getHeigth (d, y_scale) > 20)
-		return y_scale (this.getValue (d)) + 15;
-	else 
-		return 9999;	
+	return y_scale (this.getValue (d));
+	
 }	
