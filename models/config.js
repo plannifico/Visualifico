@@ -28,7 +28,7 @@ config.web.port = process.env.WEB_PORT || 9980;
 config.web.url = "http://localhost:5000/";
 
 
-config.db.uristring = process.env.MONGOHQ_URL || 'mongodb://localhost/visualifico';
+config.db.uristring = process.env.MONGOHQ_URL || 'mongodb://localhost/plannifico';
 
 config.directories.log = "logs";
 config.files.log = "visualifico.log";

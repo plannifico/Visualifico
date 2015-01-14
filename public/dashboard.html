@@ -24,7 +24,7 @@
 		
 	</div>
 <script>
-	
+
 	var event_dispatcher = new EventDispatcher ();
 	
 	var vbc = new VerticalCategoryBarChart (		
@@ -32,30 +32,30 @@
 		//get_value
 		function (d) {
 		
-			return d.TotalNew;
+			return d ["priceItem.offerSummary.TotalNew"];
 		},
 		//get_key
 		function (d) {
-			
-			return d.Brand;
+
+			return d ["priceItem.attributes.Brand"];
 		},
 		event_dispatcher,
 		{
-			"collection": "bestSellersItems", 
-			"dimension": "Brand", 
-			"measure": '{"measures":["TotalNew"]}',
-			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+			"collection": "priceItems", 
+			"dimension": "priceItem.attributes.Brand", 
+			"measure": '{"measures":["priceItem.offerSummary.TotalNew"]}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
 		{ 
 			"height": 350, 
 			"width": 800,			
 			"useCategoryColors":true,
-			"showXAxisLabel":true
+			"showXAxisLabel":true,
+			"xLabel":"TotalNew"
 		}
 	)
-	.show ({"top": 10});	
+	.show ({});
 	
-	event_dispatcher.addListener (vbc)
 	
 	var hbc = new HorizontalCategoryBarChart (
 		
@@ -63,31 +63,35 @@
 		//get_value
 		function (d) {
 		
-			return d.TotalNew;
+			return d ["priceItem.offerSummary.TotalNew"];
 		},
 		//get_key
 		function (d) {
+
+			//var t = new Date (d.time);
 			
-			return d.When;
+			return d.time;
 		},		
 		event_dispatcher,
 		{
-			"collection": "bestSellersItems", 
-			"dimension": "When", 
-			"measure": '{"measures":["TotalNew"]}',
-			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+			"collection": "priceItems", 
+			"dimension": "time", 
+			"measure": '{"measures":["priceItem.offerSummary.TotalNew"]}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
 		{ 	
-			"height": 200, 
+			"height": 400, 
 			"width": 800,			
 			"defaultColor":"rgb(119, 147, 60)",
-			"showXAxisLabel":true
+			"showXAxisLabel":true,	
+			"xLabel":"Time",
+			"rotateXLabels": -90
 			
 		}
 	).show ({});
 	
 	event_dispatcher.addListener (hbc);	
-	
+	/*
 	var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",
 		//get_value
@@ -121,8 +125,8 @@
 		}
 	).show ({});
 	
-	event_dispatcher.addListener (sbc);
-	
+	event_dispatcher.addListener (sbc);*/
+	/*
 	var xbc = new xDBubbleChart (		
 		"chart-measures-by-brands",
 		//Get the ball attribute
@@ -153,7 +157,7 @@
 	).show ({});
 	
 	event_dispatcher.addListener (xbc);
-	
+	*/
 	
 </script>
 </body>

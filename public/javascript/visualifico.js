@@ -85,6 +85,8 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	
 	this.xLabel = ((parameters.xLabel) ? parameters.xLabel : "");
 	this.yLabel = ((parameters.yLabel) ? parameters.yLabel : "");
+
+	this.rotateXLabels = ((parameters.rotateXLabels) ? parameters.rotateXLabels : 0);
 	
 	this.dispatcher = dispatcher;
 	
@@ -102,8 +104,10 @@ VisualificoChart.prototype.getTopMargin = function () {
 }
 
 VisualificoChart.prototype.getBottomMargin = function () {
+	
+	var get_key = this.getKey;
 
-	return 30;
+	return this.rotateXLabels ? d3.max (this.group, function (d) { return get_key(d).length * 6; }) : 30;
 }
 
 VisualificoChart.prototype.getMaxYLabel = function () {
@@ -302,7 +306,7 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 			((parameters.top && (!isNaN(parameters.top))) ? "&top=" + parameters.top : "") +
 			(this.currentFilters ? "&filters=" + JSON.stringify(filters): "{}");
 	
-		//console.log ("BarChart::loadData url = " + url);
+		console.log ("BarChart::loadData url = " + url);
 	
 		d3.json(url
 			, function (error, data) {
@@ -311,7 +315,7 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 				console.log ("BarChart::loadData error - " + error);
 				return;
 			}
-			//console.log ("BarChart::loadData data - " + JSON.stringify (data));
+			console.log ("BarChart::loadData data - " + JSON.stringify (data));
 			
 			_this.setResponse (data);
 			
@@ -403,18 +407,41 @@ VisualificoChart.prototype.updateLegend = function () {
 
 VisualificoChart.prototype.addXAxis = function (x_scale) {
 
+	
+
 	var xAxis = d3.svg.axis ()
 		.scale (x_scale)
 		.orient ("bottom")
 		.ticks (this.numberOfXTicks);
 		
-	this.svg.append("g")
+	var xaxis = this.svg.append("g")
 		.attr ("class","axis xaxis")
 		.call (xAxis)
 		.attr ("transform", "translate(0," + (this.h - this.getBottomMargin () + 5) + ")");
-		
+	
+	this.xLabelsRotation (xaxis);
+
+	
 	//console.log ("addXAxis append ok");
 }
+
+VisualificoChart.prototype.xLabelsRotation = function (xaxis) {
+	var _this = this;
+	
+	if (this.rotateXLabels) {		
+
+		xaxis	
+			.selectAll("text")  
+			.style("text-anchor", "end")
+			.attr("dx", "-.5em")
+			.attr("dy", ".15em")
+			.attr("transform", function(d) {
+
+				return "rotate(" + _this.rotateXLabels + ")" + " translate(-5,-5)"; 
+			});
+	}
+}
+
 
 VisualificoChart.prototype.addYAxis = function (y_scale) {
 
@@ -580,40 +607,77 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	var x_scale = this.getXScale (this.getLeftMargin (this.getMaxYLabel ()), this.getRightMargin());
 	var y_scale = this.getYScale ();
 
-	var xAxis = d3.svg.axis().scale (x_scale).orient("bottom");
+	var xaxis = d3.svg.axis().scale (x_scale).orient("bottom");
 	var yAxis = d3.svg.axis().scale (y_scale).orient("left");
 	
-	this.svg.selectAll("g.xaxis.axis")
-		.call (xAxis);
+	xaxis = this.svg.selectAll("g.xaxis.axis")
+		.call (xaxis);
 		
 	this.svg.selectAll("g.yaxis.axis")
 		.call (yAxis);
 	
+	
+	this.xLabelsRotation (xaxis);
+
+	
 	//Mark the shapes to remove
 	if (this.oldGroup) {
 
-		svg.selectAll (shape)
+		var to_remove = svg.selectAll (shape)
 			.data (this.oldGroup)
 			.classed ("toremove", true);
-	}
+	
+		to_remove
+		.attr ("x", function (d) {
+		
+			console.log ("toremove " + JSON.stringify (d));
+			//return _this.getX (d, x_scale);
+		});	
+	}	
 	
 	//Select the shapes to keep and update
 	var shapes_to_update = svg.selectAll (shape)
 		.data (this.group)
-		.classed ("toremove", false)
-		.transition ()
-		.duration (700)
-		.ease ("elastic");
-	
+		.attr ("class", "");
+		//.classed ("toremove", function (d){console.log("assignign to remove " + JSON.stringify (d)); return false;});
+
+	//removed the marked shapes
+	var to_remove = svg.selectAll (shape + ".toremove");
+		//.data (this.oldGroup);		
+		
+	to_remove
+		.attr ("x", function (d) {
+		
+			console.log ("removing.... " + JSON.stringify (d));
+			//return _this.getX (d, x_scale);
+		});	
+			
 	//Abstract method implemented by specific shapes chart
 	this.updateShapesCoordinates (shapes_to_update);
 	
 	//removed the marked shapes
+	var to_remove = svg.selectAll (shape + ".toremove")
+		.data (this.oldGroup);		
+		
+	to_remove
+		.attr ("x", function (d) {
+		
+			console.log ("removing.... " + JSON.stringify (d));
+			//return _this.getX (d, x_scale);
+		});	
+		
 	svg.selectAll (shape + ".toremove")
-		.data (this.oldGroup)
+		.data (this.oldGroup)	
 		.remove();	
 	
 	var shapes = this.addShapes (shape);
+		
+	shapes
+		.attr ("x", function (d) {
+		
+			console.log ("add " + JSON.stringify (d));
+			//return _this.getX (d, x_scale);
+		});	
 	
 	this.addInteraction (shapes);
 	
@@ -733,16 +797,19 @@ BarChart.prototype.updateShapesCoordinates = function (shapes_to_update) {
 	
 	var x_scale = this.getXScale (
 		this.getLeftMargin (this.getMaxYLabel()), 
-		this.getRightMargin ());
+		this.getRightMargin ()
+	);
 		
 	var y_scale = this.getYScale ();
 		
 	shapes_to_update
 		.attr ("x", function (d) {
-			
+		
+			console.log ("updateShapesCoordinates " + JSON.stringify (d));
 			return _this.getX (d, x_scale);
 		})
 		.attr ("y", function (d) {
+		
 			//console.log ("y = " + _this.getY (d, y_scale));
 			return _this.getY (d, y_scale);
 		})
@@ -1001,7 +1068,7 @@ StackedBarChart.prototype.constructor = StackedBarChart;
 
 StackedBarChart.prototype.setResponse = function (data) {
 
-	//console.log ("StackedBarChart::setResponse data = " + JSON.stringify (data));
+//	console.log ("StackedBarChart::setResponse data = " + JSON.stringify (data));
 	var _this = this;
 	
 	this.oldGroup = this.group;
@@ -1066,8 +1133,6 @@ StackedBarChart.prototype.getY = function (d, y_scale) {
 
 StackedBarChart.prototype.returnColor = function (d) {
 		
-	//console.log ("color (this.getKey(d)) " + this.getStackedKey); 
-	
 	if (this.useCategoryColors) return this.colorScale (this.getStackedKey(d));	
 	
 	return this.defaultColor;

@@ -43,20 +43,33 @@ module.exports = function Orchestrator () {
 					var selection = {};
 					
 					selection [_dim] = 1;
+
+					logger.log ("Orchestrator::getStackedChartDBData selection: " + JSON.stringify (selection));
 					
 					var reduce = "function( curr, result ) { ";
 					
 					var init = {};
 					
 					for (var measure in _measures) {
+
+						var m_name = _measures [measure].split(".");
 					
-						reduce += "result." + _measures [measure] + " += curr."+ _measures [measure] + " ? curr."+ _measures [measure] +" : 0; ";
+						/*reduce += "result." + 
+							m_name [m_name.length - 1] + 
+							" += curr."+ _measures [measure] + 
+							" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";*/
+
+						reduce += "result['" + _measures [measure] + "']" + 
+							" += curr."+ _measures [measure] + 
+							" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";
+						
 						init [_measures [measure]] = 0;
 					}
 					
 					reduce += "};";	
 					
 					logger.log ("Orchestrator::getStackedChartDBData reduce: " + reduce);	
+					logger.log ("Orchestrator::getStackedChartDBData reduce: " + JSON.stringify (init));	
 					
 					collection.group (selection, _filters, init, reduce, 
 					
