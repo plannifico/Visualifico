@@ -22,7 +22,7 @@ var logger = require("./logger.js");
 
 module.exports = function Orchestrator () {	
 	
-	this.getMeasureByDimensionDBData = function (_collection, _dim, _measures, _filters, callback) {
+	this.getMeasureByDimensionDBData = function (_collection, _dim_selection, _dim, _measures, _attribute_list, _filters, callback) {
 	
 		logger.log ("Orchestrator::getMeasureByDimensionDBData");
 	
@@ -31,22 +31,22 @@ module.exports = function Orchestrator () {
 			if (err) logger.log ("Orchestrator::getMeasureByDimensionDBData err " + err);
 		
 			if (!err) {
-			
+
+
 				var collection = db.collection (_collection);
 
 				logger.log ("Orchestrator::getMeasureByDimensionDBData collection " + collection);
 				
 				if (collection) {	
 					
-					logger.log ("Orchestrator::getMeasureByDimensionDBData filters " + JSON.stringify (_filters));
+					logger.log ("Orchestrator::getMeasureByDimensionDBData filters " + _filters);	
+				
+					//console.log(_dim_selection);
+				
+					var keyf_func = new Function('doc', 'return ' + decodeURI(_dim_selection));
 					
-					var selection = {};
-					
-					selection [_dim] = 1;
-
-					logger.log ("Orchestrator::getStackedChartDBData selection: " + JSON.stringify (selection));
-					
-					var reduce = "function( curr, result ) { ";
+					var reduce = "function( curr, result ) { " +
+						"if (!result.attributeList) result.attributeList = []; ";
 					
 					var init = {};
 					
@@ -54,38 +54,40 @@ module.exports = function Orchestrator () {
 
 						var m_name = _measures [measure].split(".");
 					
-						/*reduce += "result." + 
-							m_name [m_name.length - 1] + 
-							" += curr."+ _measures [measure] + 
-							" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";*/
+						if (_attribute_list != 'NA')
 
-						reduce += "result['" + _measures [measure] + "']" + 
-							" += curr."+ _measures [measure] + 
-							" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";
+							reduce += "result['" + _measures [measure] + "']" + 
+								" += curr."+ _measures [measure] + 
+								" ? parseFloat (curr."+ _measures [measure] + ") : 0; " +
+								"result.attributeList.push (curr." + _attribute_list + "); ";
+
+						else
+		
+							reduce += "result['" + _measures [measure] + "']" + 
+								" += curr."+ _measures [measure] + 
+								" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";
 						
 						init [_measures [measure]] = 0;
 					}
 					
 					reduce += "};";	
-					
-					logger.log ("Orchestrator::getStackedChartDBData reduce: " + reduce);	
-					logger.log ("Orchestrator::getStackedChartDBData reduce: " + JSON.stringify (init));	
-					
-					collection.group (selection, _filters, init, reduce, 
+									
+					collection.group (keyf_func, _filters, init, reduce, 
 					
 						function (err, chart_data) {
 					
-							if (err) logger.log ("Orchestrator::getStackedChartDBData error during group-by: " + err);					
-								
-							collection.distinct (_dim,_filters, function (err, domain) {
+							if (err) logger.log ("Orchestrator::getStackedChartDBData error during group-by: " + err);
 							
-								if (err) logger.log ("Orchestrator::getStackedChartDBData error during domain collection: " + err);
-														
-								callback ({"result": chart_data, "domain": domain});
-								db.close ();								
+							var domain = [];
+
+							for (var idx in chart_data) {
 								
-							});							
-																					
+								domain.push (chart_data[idx] [_dim] + "");
+							}
+							
+							callback ({"result": chart_data, "domain": domain});
+							
+							db.close ();												
 						}
 					);
 				}
@@ -115,8 +117,8 @@ module.exports = function Orchestrator () {
 					
 					var selection = {};
 					
-					selection [_dim] = 1;
-					selection [_stacked_dim] = 1;
+					selection [_dim.selector] = 1;
+					selection [_stacked_dim.selector] = 1;
 					
 					var reduce = "function( curr, result ) { ";
 					
@@ -124,12 +126,14 @@ module.exports = function Orchestrator () {
 					
 					for (var measure in _measures) {
 					
-						reduce += "result.key = [curr."+_dim+",curr." + _stacked_dim + "]; "+
-								  "result." + _measures [measure] + " += curr."+ _measures [measure] + " ? curr."+ _measures [measure] +" : 0; ";
+						reduce += "result.key = [curr."+_dim +",curr." + _stacked_dim + "]; "+
+								  "result." + _measures [measure].name + " += curr."+ _measures [measure].selector + " ? curr."+ _measures [measure].selector +" : 0; ";
 						init [_measures [measure]] = 0;
 					}
 					
 					reduce += "};";
+
+					logger.log ("Orchestrator::getStackedMeasureByDimensionDBData selection " + JSON.stringify (selection));
 					
 					collection.group (selection, _filters, init, reduce, 
 					
@@ -137,9 +141,21 @@ module.exports = function Orchestrator () {
 					
 							if (err) logger.log ("Orchestrator::getStackedMeasureByDimensionDBData error during group-by: " + err);
 					
-							//logger.log ("Orchestrator::getStackedMeasureByDimensionDBData collection find ok " + JSON.stringify (chart_data));
+							logger.log ("Orchestrator::getStackedMeasureByDimensionDBData collection find ok " + JSON.stringify (chart_data));
 							var selection = {};							
 							selection [_dim] = 1;
+
+							var reduce = "function( curr, result ) { ";
+					
+							var init = {};
+				
+							for (var measure in _measures) {
+				
+								reduce += "result." + _measures [measure].name + " += curr."+ _measures [measure].selector + " ? curr."+ _measures [measure].selector +" : 0; ";
+								init [_measures [measure]] = 0;
+							}
+				
+							reduce += "};";
 							
 							collection.group (selection, _filters, init, reduce,
 							
@@ -173,11 +189,11 @@ module.exports = function Orchestrator () {
 		});
 	}
 	
-	this.getMeasureByDimensionData = function (_res, _collection, _dim, _measure, _top, _filters, callback) {
+	this.getMeasureByDimensionData = function (_res, _collection, _dimselection, _dim, _measure, _attribute_list, _filters, callback) {
 	
 		logger.log ("Orchestrator::getMeasureByDimensionData");
 	
-		this.getMeasureByDimensionDBData (_collection, _dim, _measure, _filters, function (chart_data) {
+		this.getMeasureByDimensionDBData (_collection, _dimselection, _dim, _measure, _attribute_list, _filters, function (chart_data) {
 						
 			callback ({
 				"response": chart_data

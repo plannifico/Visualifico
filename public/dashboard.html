@@ -37,12 +37,13 @@
 		//get_key
 		function (d) {
 
-			return d ["priceItem.attributes.Brand"];
+			return d ["Brand"];
 		},
 		event_dispatcher,
 		{
 			"collection": "priceItems", 
-			"dimension": "priceItem.attributes.Brand", 
+			"dimension": "Brand", 
+			"dimensionSelection": '{"Brand":doc.priceItem.attributes.Brand}',
 			"measure": '{"measures":["priceItem.offerSummary.TotalNew"]}',
 			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
@@ -51,10 +52,13 @@
 			"width": 800,			
 			"useCategoryColors":true,
 			"showXAxisLabel":true,
-			"xLabel":"TotalNew"
+			"xLabel":"TotalNew",
+			"selectionWhere" : "this.priceItem.attributes.Brand == '<selected>'"
 		}
 	)
 	.show ({});
+
+	event_dispatcher.addListener (vbc);	
 	
 	
 	var hbc = new HorizontalCategoryBarChart (
@@ -67,15 +71,14 @@
 		},
 		//get_key
 		function (d) {
-
-			//var t = new Date (d.time);
 			
-			return d.time;
+			return d.month;
 		},		
 		event_dispatcher,
 		{
 			"collection": "priceItems", 
-			"dimension": "time", 
+			"dimension": "month",
+			"dimensionSelection": '{"month": (new Date(doc.time).getFullYear()).toString() + "/" + ((new Date(doc.time).getMonth())+1).toString()}', 
 			"measure": '{"measures":["priceItem.offerSummary.TotalNew"]}',
 			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
@@ -85,14 +88,49 @@
 			"defaultColor":"rgb(119, 147, 60)",
 			"showXAxisLabel":true,	
 			"xLabel":"Time",
-			"rotateXLabels": -90
-			
+			"selectionWhere" : "(new Date(this.time).getFullYear()).toString() + '/' + ((new Date(this.time).getMonth())+1).toString() == '<selected>'"			
 		}
 	).show ({});
 	
 	event_dispatcher.addListener (hbc);	
 	/*
-	var sbc = new StackedBarChart (		
+	var xbc = new xDBubbleChart (		
+		"chart-measures-by-brands",
+		//Get the ball attribute
+		function (d) {return d.Brand},
+		//Get the x axis measure
+		function (d) {return d ["priceItem.offerSummary.TotalNew"]},
+		//Get the y axis measure
+		function (d) {return (d ["priceItem.offerSummary.TotalNew"] != 0) ? d ["priceItem.offerSummary.LowestNewPrice.Amount"]/d ["priceItem.offerSummary.TotalNew"] : 0;},
+		//Get the ball size measure
+		function (d) {return d ["priceItem.attributes.PackageQuantity"];},
+		event_dispatcher,
+		{
+			"collection": "priceItems", 
+			"dimension": "Brand", 
+			"dimensionSelection": '{"Brand":doc.priceItem.attributes.Brand, "selectorValue":doc.priceItem.attributes.Brand}',
+			"measure": '{"measures": ["priceItem.offerSummary.TotalNew", "priceItem.offerSummary.LowestNewPrice.Amount", "priceItem.attributes.PackageQuantity"]}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
+		},
+		{ 	
+			"height": 500, 
+			"width": 800,			
+			"defaultColor":"rgb(119, 147, 60)",
+			"showXAxisLabel":true,
+			"xLabel": "Total New",
+			"yLabel": "Avg. Price",
+			"bubbleSizeLabel": "Package Quantity",
+			"bubbleAttributeLabel": "Brand",
+			"selectorAttribute": "priceItem.attributes.Brand"
+		}
+	).show ({});
+	
+	event_dispatcher.addListener (xbc);
+	
+
+*/
+
+	/*var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",
 		//get_value
 		function (d) {
@@ -111,53 +149,22 @@
 		},
 		event_dispatcher,
 		{
-			"collection": "bestSellersItems", 
-			"dimension": "When", 
-			"stackedDimension": "Brand", 
-			"measure": '{"measures":["TotalNew"]}',
-			"defaultFilters": {"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
+			"collection": "priceItems", 
+			"dimension": '{"selector": "priceItem.attributes.Brand", "name": "Brand"}', 
+			"stackedDimension": '{"selector": "priceItem.attributes.EAN", "name": "EAN"}', 
+			"measure": '{"measures":[{"selector":"priceItem.offerSummary.TotalNew","name":"TotalNew"}]}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
 		{ 	
 			"height": 400, 
 			"width": 800,			
 			"useCategoryColors":true,
-			"showXAxisLabel":true
+			"showXAxisLabel":true,	
+			"xLabel":"Brand"
 		}
 	).show ({});
 	
 	event_dispatcher.addListener (sbc);*/
-	/*
-	var xbc = new xDBubbleChart (		
-		"chart-measures-by-brands",
-		//Get the ball attribute
-		function (d) {return d.Brand},
-		//Get the x axis measure
-		function (d) {return d.TotalNew},
-		//Get the y axis measure
-		function (d) {return (d.TotalNew != 0) ? d.Price/d.TotalNew : 0;},
-		//Get the ball size measure
-		function (d) {return d.SalesRank;},
-		event_dispatcher,
-		{
-			"collection": "bestSellersItems", 
-			"dimension": "Brand", 
-			"measure": '{"measures":["TotalNew", "SalesRank", "Price"]}',
-			"defaultFilters": {"When":{"$in":["2014-12-26","2014-12-27","2014-12-28","2014-12-29","2014-12-30"]},"Brand":{"$in":["LAMPA","Bosch","TomTom","Garmin"]}}
-		},
-		{ 	
-			"height": 500, 
-			"width": 800,			
-			"defaultColor":"rgb(119, 147, 60)",
-			"showXAxisLabel":true,
-			"xLabel": "Total New",
-			"yLabel": "Avg. Price",
-			"bubbleSizeLabel": "Sales Rank",
-			"bubbleAttributeLabel": "Brand"
-		}
-	).show ({});
-	
-	event_dispatcher.addListener (xbc);
-	*/
 	
 </script>
 </body>

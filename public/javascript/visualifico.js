@@ -66,7 +66,9 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	
 	this.collection = query.collection;
 	this.dimension = query.dimension;
+	this.dimensionSelection = query.dimensionSelection;
 	this.measure = query.measure;	
+	this.attributeList = query.attributeList;
 	this.defaultFilters = query.defaultFilters;
 	
 	this.defaultColor = parameters.defaultColor ? parameters.defaultColor : "rgb(85, 142, 213)";
@@ -82,6 +84,10 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	this.numberOfXTicks = parameters.numberOfXTicks ? parameters.numberOfXTicks : 5;
 	
 	this.numberOfYTicks = parameters.numberOfYTicks ? parameters.numberOfYTicks : 5;
+
+	this.selectorAttribute = parameters.selectorAttribute ? parameters.selectorAttribute : query.dimension;
+	this.selectionWhere = parameters.selectionWhere;
+	this.listSelector = parameters.listSelector ? parameters.listSelector : false;
 	
 	this.xLabel = ((parameters.xLabel) ? parameters.xLabel : "");
 	this.yLabel = ((parameters.yLabel) ? parameters.yLabel : "");
@@ -134,7 +140,7 @@ VisualificoChart.prototype.getYAxisMargin = function () {
 
 VisualificoChart.prototype.notifyEvent = function (event) {
 
-	//console.log ("VisualificoChart::notifyEvent event = " + JSON.stringify (event));
+	console.log ("VisualificoChart::notifyEvent event = " + JSON.stringify (event));
 	//console.log ("VisualificoChart::notifyEvent this.currentFilters " + JSON.stringify (this.currentFilters)); 
 	//console.log ("VisualificoChart::notifyEvent this.defaultFilters " + JSON.stringify (this.defaultFilters));
 	//console.log ("VisualificoChart::notifyEvent event.selected.length " + event.selected.length);
@@ -151,19 +157,57 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 				//this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
 				
 				if (event.action == "added") {
+
+					if (sel_idx == "where") {
+
+						
+
+						this.currentFilters ["$where"] = event.selection [sel_idx] + " && " + (this.currentFilters ["$where"] ? this.currentFilters ["$where"] : "true");
+					}
+					else {
 				
-					this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
+						( typeof event.selection [sel_idx] === 'string' ) ?					
+							this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]) :	
+							this.currentFilters [sel_idx] ["$in"].push.apply (event.selection [sel_idx]);	
+
+					}					
 				}
 				else if  (event.action == "removed") {
-				
-					var idx = this.currentFilters [sel_idx] ["$in"].indexOf (event.selection [sel_idx]);
-					
-					this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+
+					if (sel_idx == "where") {
+
+						console.log ("VisualificoChart::notifyEvent this.currentFilters [$where] = " + this.currentFilters ["$where"]);
+						console.log ("VisualificoChart::notifyEvent event.selection [sel_idx] = " + event.selection [sel_idx]);
+
+						this.currentFilters ["$where"] = this.currentFilters ["$where"].replace (event.selection [sel_idx], "true");
+						
+					}
+					else if ( typeof event.selection [sel_idx] === 'string' ) {
+
+
+						var idx = this.currentFilters [sel_idx] ["$in"].indexOf (event.selection [sel_idx]);					
+						this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+						
+					} else {
+
+						event.selection [sel_idx].forEach (function (element) {
+
+							var idx = this.currentFilters [sel_idx] ["$in"].indexOf (element);					
+							this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+						});						
+					}
 				}
 			}
 			else {
 				//Selected elements does not exist on the given dimension
-				this.currentFilters [sel_idx] = {"$in":[event.selection [sel_idx]]};	
+
+				if (sel_idx == "where") {
+					
+					this.currentFilters ["$where"] = event.selection [sel_idx];
+				}
+				else
+					this.currentFilters [sel_idx] = ( typeof event.selection [sel_idx] === 'string' ) ? {"$in":[event.selection [sel_idx]]} : {"$in": event.selection [sel_idx]} ;	
+
 				if (this.defaultFilters [sel_idx]) this.defaultFilters [sel_idx].disabled = true;
 			}
 		}
@@ -183,12 +227,14 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 				
 				
 			}
+			else if (sel_idx == "where")
+				delete this.currentFilters ["$where"];
 			else
 				delete this.currentFilters [sel_idx];
 		}
 	}
 	
-	//console.log ("VisualificoChart::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
+	console.log ("VisualificoChart::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
 	
 	var _this = this;
 	
@@ -217,8 +263,26 @@ VisualificoChart.prototype.getSelectedKey = function (d) {
 VisualificoChart.prototype.getSelection = function (d) {
 
 	var selection = {};
+	var _this = this;
 	
-	selection [this.dimension] = this.getKey (d);
+	if (this.selectionWhere) {
+
+		selection ["where"] = "";
+
+		this.selected.forEach (function (already_selected) {
+
+			console.log ("VisualificoChart::getSelection already_selected: " + already_selected);
+			selection ["where"] += _this.selectionWhere.replace ("<selected>", already_selected) + " || ";
+		});
+
+		selection ["where"] = selection ["where"].substr(0, selection ["where"].length - 4)
+
+	}
+	else
+		selection [this.selectorAttribute] = (this.listSelector ? d.attributeList : d.selectorValue);
+
+	console.log ("VisualificoChart::getSelection " + JSON.stringify(selection));
+
 	return selection;
 }
 
@@ -296,15 +360,19 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 	
 	this.currentTop = parameters.top;
 
+	//console.log(encodeURI(this.dimensionSelection));
+
 	if (this.collection && this.dimension && this.measure) {
 	
 		var url = this.url + this.call +  
 			"?collection=" + this.collection +
+			"&dimselection=" + encodeURIComponent (this.dimensionSelection) +
 			"&dim=" + this.dimension +
 			(this.stackedDimension ? "&stackedDim=" + this.stackedDimension : "") +
+			(this.attributeList ? "&attributelist=" + this.attributeList : "") +
 			"&measure=" + this.measure +
 			((parameters.top && (!isNaN(parameters.top))) ? "&top=" + parameters.top : "") +
-			(this.currentFilters ? "&filters=" + JSON.stringify(filters): "{}");
+			(this.currentFilters ? "&filters=" + encodeURIComponent (JSON.stringify(filters)): "{}");
 	
 		console.log ("BarChart::loadData url = " + url);
 	
@@ -531,7 +599,7 @@ ShapeChart.prototype.drawShapeTextLabels = function (prefix, texts) {
 	
 	texts.attr("class", prefix + "-text")
 		.attr("x", function(d) {
-			
+
 			return _this.getLabelX (d, x_scale);
 		})
 		.attr("y", function(d) {
@@ -630,7 +698,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 		to_remove
 		.attr ("x", function (d) {
 		
-			console.log ("toremove " + JSON.stringify (d));
+			//console.log ("toremove " + JSON.stringify (d));
 			//return _this.getX (d, x_scale);
 		});	
 	}	
@@ -648,7 +716,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	to_remove
 		.attr ("x", function (d) {
 		
-			console.log ("removing.... " + JSON.stringify (d));
+			//console.log ("removing.... " + JSON.stringify (d));
 			//return _this.getX (d, x_scale);
 		});	
 			
@@ -662,7 +730,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	to_remove
 		.attr ("x", function (d) {
 		
-			console.log ("removing.... " + JSON.stringify (d));
+			//console.log ("removing.... " + JSON.stringify (d));
 			//return _this.getX (d, x_scale);
 		});	
 		
@@ -880,6 +948,7 @@ VerticalCategoryBarChart.prototype.getXScale = function (l_padding, right_margin
 	var get_value = this.getValue;
 	
 	var x_scale = d3.scale.linear ();
+
 	x_scale.domain ([0, d3.max (this.group, function (d) { return get_value (d); })]);
 	x_scale.range ([l_padding, this.w - right_margin]);
 	
@@ -1256,7 +1325,7 @@ BubbleChart.prototype.getToolTip = function (d) {
 	return this.bubbleAttributeLabel + " = " + this.getKey (d) + ", " + 
 		this.xLabel + " = " + this.getXValue (d).toFixed(2) + ", " +
 		this.yLabel + " = " + this.getYValue (d).toFixed(2) + ", " +
-		this.bubbleSizeLabel + " = " + this.getBubbleValue (d).toFixed(2);
+		this.bubbleSizeLabel + " = " + (this.getBubbleValue (d) ? this.getBubbleValue (d).toFixed(2) : 0);
 }
 
 BubbleChart.prototype.drawTextLabels = function (texts) {
@@ -1286,7 +1355,7 @@ BubbleChart.prototype.updateSelection = function () {
 function xDBubbleChart (container_id, get_key, get_x_value, get_y_value, get_bubble_value, dispatcher, query, parameters) {
 	
 	this.init (container_id, get_x_value, get_key, dispatcher, query, parameters);
-	//console.log ("xDBubbleChart this.xLabel " + this.xLabel);
+	console.log ("xDBubbleChart this.xLabel " + this.xLabel);
 	this.xLabel = ((this.xLabel == "") ? query.dimension : this.xLabel);
 		
 	this.bubbleSizeLabel = parameters.bubbleSizeLabel ? parameters.bubbleSizeLabel : "";

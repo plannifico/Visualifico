@@ -55,26 +55,20 @@ app.get('/getMeasureByDimensionData', function(req, res) {
 		
 		if (req.query.filters) {
 		
-			filters = JSON.parse(req.query.filters);
+			filters = JSON.parse(decodeURI(req.query.filters));
 			
 			logger.log ("getMeasureByDimensionData: filters_strings = " + filters);
-			/*
-			if ((filters_strings) && (filters_strings.length != 0)) {
 			
-				filters_strings.forEach (function (filter_str) {
-					logger.log ("getBarChartData: filter_str = " + filter_str);
-					filters.push (JSON.parse(filter_str));
-					
-				});
-			}*/
 		}
 		var measure = JSON.parse(req.query.measure);
 		
 		var measures = measure.measures ? measure.measures : measure;
 	
 		o.getMeasureByDimensionData (
-			res, req.query.collection, req.query.dim, measures, req.query.top ? req.query.top : -1, filters,
+			res, req.query.collection, req.query.dimselection, req.query.dim, measures, req.query.attributelist ? req.query.attributelist : "NA", filters,
+
 			function (response) {
+
 				res.json (response);
 			});
 
@@ -139,8 +133,11 @@ app.listen(app.get('port'), function() {
 
 function checkParameters (req) {
 
-	if ((req.query.collection) && 
-		 (req.query.dim) && 
+	console.log(JSON.stringify (req.query));
+
+	if 	((req.query.collection) && 
+		 (req.query.dimselection) && 
+		 (req.query.dim) &&  
 		 (req.query.measure) && 
 		 (
 			(!req.query.top) ||
