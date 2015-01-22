@@ -45,8 +45,7 @@ module.exports = function Orchestrator () {
 				
 					var keyf_func = new Function('doc', 'return ' + decodeURI(_dim_selection));
 					
-					var reduce = "function( curr, result ) { " +
-						"if (!result.attributeList) result.attributeList = []; ";
+					var reduce = "function( curr, result ) { ";
 					
 					var init = {};
 					
@@ -58,8 +57,7 @@ module.exports = function Orchestrator () {
 
 							reduce += "result['" + _measures [measure] + "']" + 
 								" += curr."+ _measures [measure] + 
-								" ? parseFloat (curr."+ _measures [measure] + ") : 0; " +
-								"result.attributeList.push (curr." + _attribute_list + "); ";
+								" ? parseFloat (curr."+ _measures [measure] + ") : 0; ";
 
 						else
 		
@@ -78,14 +76,25 @@ module.exports = function Orchestrator () {
 					
 							if (err) logger.log ("Orchestrator::getStackedChartDBData error during group-by: " + err);
 							
-							var domain = [];
+							var domains = {};
 
-							for (var idx in chart_data) {
-								
-								domain.push (chart_data[idx] [_dim] + "");
+							for (var row_idx in chart_data) {
+
+								for (dimidx in chart_data [row_idx]) {
+						
+									var is_measures = false;
+
+									for (var measure in _measures) if (_measures [measure] == dimidx) is_measures = true;
+
+									if (is_measures) continue;
+									
+									if(!domains [dimidx]) domains [dimidx] = [];
+									
+									domains [dimidx].push (chart_data[row_idx] [dimidx] + "");
+								}
 							}
 							
-							callback ({"result": chart_data, "domain": domain});
+							callback ({"result": chart_data, "domains": domains});
 							
 							db.close ();												
 						}

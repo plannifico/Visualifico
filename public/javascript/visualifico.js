@@ -68,7 +68,6 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	this.dimension = query.dimension;
 	this.dimensionSelection = query.dimensionSelection;
 	this.measure = query.measure;	
-	this.attributeList = query.attributeList;
 	this.defaultFilters = query.defaultFilters;
 	
 	this.defaultColor = parameters.defaultColor ? parameters.defaultColor : "rgb(85, 142, 213)";
@@ -145,7 +144,8 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 	//console.log ("VisualificoChart::notifyEvent this.defaultFilters " + JSON.stringify (this.defaultFilters));
 	//console.log ("VisualificoChart::notifyEvent event.selected.length " + event.selected.length);
 	//filter_obj [event.dimension] = 
-	
+	console.log ("VisualificoChart::notifyEvent this.currentFilters [$where] = " + JSON.stringify (this.currentFilters ["$where"]));
+	//Qui errore: l'evento non ha selected ma c'e' una selezione da altri grafici
 	if (event.selected.length > 0) {
 		//Selected elements already exists
 		for (var sel_idx in event.selection) {
@@ -158,8 +158,7 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 				
 				if (event.action == "added") {
 
-					if (sel_idx == "where") {
-
+					if (sel_idx == "$where") {
 						
 
 						this.currentFilters ["$where"] = event.selection [sel_idx] + " && " + (this.currentFilters ["$where"] ? this.currentFilters ["$where"] : "true");
@@ -174,7 +173,7 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 				}
 				else if  (event.action == "removed") {
 
-					if (sel_idx == "where") {
+					if (sel_idx == "$where") {
 
 						console.log ("VisualificoChart::notifyEvent this.currentFilters [$where] = " + this.currentFilters ["$where"]);
 						console.log ("VisualificoChart::notifyEvent event.selection [sel_idx] = " + event.selection [sel_idx]);
@@ -201,7 +200,7 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 			else {
 				//Selected elements does not exist on the given dimension
 
-				if (sel_idx == "where") {
+				if (sel_idx == "$where") {
 					
 					this.currentFilters ["$where"] = event.selection [sel_idx];
 				}
@@ -227,7 +226,7 @@ VisualificoChart.prototype.notifyEvent = function (event) {
 				
 				
 			}
-			else if (sel_idx == "where")
+			else if (sel_idx == "$where")
 				delete this.currentFilters ["$where"];
 			else
 				delete this.currentFilters [sel_idx];
@@ -267,21 +266,21 @@ VisualificoChart.prototype.getSelection = function (d) {
 	
 	if (this.selectionWhere) {
 
-		selection ["where"] = "";
+		selection ["$where"] = "";
 
 		this.selected.forEach (function (already_selected) {
 
-			console.log ("VisualificoChart::getSelection already_selected: " + already_selected);
-			selection ["where"] += _this.selectionWhere.replace ("<selected>", already_selected) + " || ";
+			//console.log ("VisualificoChart::getSelection already_selected: " + already_selected);
+			selection ["$where"] += _this.selectionWhere.replace ("<selected>", already_selected) + " || ";
 		});
 
-		selection ["where"] = selection ["where"].substr(0, selection ["where"].length - 4)
+		selection ["$where"] = selection ["$where"].substr(0, selection ["$where"].length - 4)
 
 	}
 	else
-		selection [this.selectorAttribute] = (this.listSelector ? d.attributeList : d.selectorValue);
+		selection [this.selectorAttribute] = d.selectorValue;
 
-	console.log ("VisualificoChart::getSelection " + JSON.stringify(selection));
+	//console.log ("VisualificoChart::getSelection " + JSON.stringify(selection));
 
 	return selection;
 }
@@ -308,7 +307,7 @@ VisualificoChart.prototype.addInteraction = function (elements) {
 			
 			
 		} else {				
-			console.log ("onClick d = " + JSON.stringify (d));
+			//console.log ("onClick d = " + JSON.stringify (d));
 			//The clicked element is not selected
 			_this.selected.push (_this.getSelectedKey (d));								
 			action = "added";
@@ -369,12 +368,11 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 			"&dimselection=" + encodeURIComponent (this.dimensionSelection) +
 			"&dim=" + this.dimension +
 			(this.stackedDimension ? "&stackedDim=" + this.stackedDimension : "") +
-			(this.attributeList ? "&attributelist=" + this.attributeList : "") +
 			"&measure=" + this.measure +
 			((parameters.top && (!isNaN(parameters.top))) ? "&top=" + parameters.top : "") +
 			(this.currentFilters ? "&filters=" + encodeURIComponent (JSON.stringify(filters)): "{}");
 	
-		console.log ("BarChart::loadData url = " + url);
+		console.log ("BarChart::loadData url = " + decodeURI(url));
 	
 		d3.json(url
 			, function (error, data) {
@@ -383,7 +381,7 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 				console.log ("BarChart::loadData error - " + error);
 				return;
 			}
-			console.log ("BarChart::loadData data - " + JSON.stringify (data));
+			//console.log ("BarChart::loadData data - " + JSON.stringify (data));
 			
 			_this.setResponse (data);
 			
@@ -405,7 +403,7 @@ VisualificoChart.prototype.show = function (parameters) {
 				_this.draw();
 				
 			else if (response.feedback == "error")
-				console.log ("VisualificoChart::show Error: " + response.error);
+				console.error ("VisualificoChart::show Error: " + response.error);
 	});
 	
 	return this;
@@ -415,8 +413,9 @@ VisualificoChart.prototype.setResponse = function (data) {
 
 	this.oldGroup = this.group;
 	this.group = data.response.result;
-	this.domain = data.response.domain;
+	this.domain = data.response.domains [this.dimension];
 }
+
 VisualificoChart.prototype.drawLegend = function () {
 
 	//console.log ("BarChart::drawLegend " + JSON.stringify (this.legendDataset));
@@ -743,7 +742,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	shapes
 		.attr ("x", function (d) {
 		
-			console.log ("add " + JSON.stringify (d));
+			//console.log ("add " + JSON.stringify (d));
 			//return _this.getX (d, x_scale);
 		});	
 	
@@ -799,9 +798,9 @@ ShapeChart.prototype.updateShapeSelection = function (shape) {
 		this.svg.selectAll (shape)
 			.data (this.group)
 			.attr("fill", function (d,i) {
-				console.log ("d " + JSON.stringify (d));
+				/*console.log ("d " + JSON.stringify (d));
 				console.log ("_this.getSelectedKey (d) " + _this.getSelectedKey (d));
-				console.log ("_this.selected.indexOf(_this.getSelectedKey (d)) " + _this.selected.indexOf(_this.getSelectedKey (d)));
+				console.log ("_this.selected.indexOf(_this.getSelectedKey (d)) " + _this.selected.indexOf(_this.getSelectedKey (d)));*/
 				if (_this.selected.indexOf(_this.getSelectedKey (d)) >= 0)
 					return _this.selectionColor;
 				else
@@ -873,7 +872,7 @@ BarChart.prototype.updateShapesCoordinates = function (shapes_to_update) {
 	shapes_to_update
 		.attr ("x", function (d) {
 		
-			console.log ("updateShapesCoordinates " + JSON.stringify (d));
+			//console.log ("updateShapesCoordinates " + JSON.stringify (d));
 			return _this.getX (d, x_scale);
 		})
 		.attr ("y", function (d) {
@@ -1131,7 +1130,7 @@ function StackedBarChart (container_id, get_value, get_key, get_stacked_key, dis
 	
 	return this;
 };
-
+/*
 StackedBarChart.prototype = Object.create(HorizontalCategoryBarChart.prototype);
 StackedBarChart.prototype.constructor = StackedBarChart;
 
@@ -1236,6 +1235,7 @@ StackedBarChart.prototype.getSelection = function (d) {
 	
 	return selection;
 }
+*/
 
 /*A ShapeChart that draws shape as circles*/
 function BubbleChart () {};
@@ -1378,8 +1378,8 @@ xDBubbleChart.prototype.getYScale = function () {
 	
 	var y_scale = d3.scale.linear ();
 	
-	y_scale.domain ([0, d3.max (this.group, function (d) { return (_this.getYValue (d) + (_this.maxBubbleSize/2)); })]);
-	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
+	y_scale.domain ([0, d3.max (this.group, function (d) { return (_this.getYValue (d)); })]);
+	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin () + (_this.maxBubbleSize)]);
 	
 	return y_scale;
 }
@@ -1390,7 +1390,7 @@ xDBubbleChart.prototype.getXScale = function (l_padding, right_margin) {
 	var x_scale = d3.scale.linear ();
 	
 	x_scale.domain ([0, d3.max (this.group, function (d) { return _this.getXValue (d) + _this.maxBubbleSize + 50})]);
-	x_scale.range ([this.getLeftMargin(0),this.w - this.getRightMargin()]);
+	x_scale.range ([this.getLeftMargin(this.getMaxYLabel()),this.w - this.getRightMargin()]);
 	
 	return x_scale;
 }
@@ -1409,6 +1409,12 @@ xDBubbleChart.prototype.getBubbleScale = function () {
 xDBubbleChart.prototype.getY = function (d, y_scale) {		
 	
 	var get_value = this.getYValue;
+	var b_scale = this.getBubbleScale ();
+
+	/*console.log("d " + JSON.stringify (d));
+	console.log("get_value (d) " + get_value (d));
+	console.log("y_scale (get_value (d)) " + y_scale (get_value (d)));
+	*/
 		
 	return y_scale (get_value (d));
 }	
@@ -1433,3 +1439,66 @@ xDBubbleChart.prototype.getLabelY = function (d, y_scale) {
 	return y_scale (this.getYValue (d)) + b_scale(this.getBubbleValue (d));
 	
 }	
+
+/*A Bubble chart that shows category on Y Axis*/
+function VerticalCategoryBubbleChart (container_id, get_key, get_x_value, get_y_category, get_bubble_value, dispatcher, query, parameters) {
+
+	//console.log ("VerticalCategoryBubbleChart " + JSON.stringify (parameters));
+
+	this.init (container_id, get_x_value, get_key, dispatcher, query, parameters);
+
+	this.xLabel = ((this.xLabel == "") ? query.dimension : this.xLabel);
+		
+	this.bubbleSizeLabel = parameters.bubbleSizeLabel ? parameters.bubbleSizeLabel : "";
+	this.bubbleAttributeLabel = parameters.bubbleAttributeLabel ? parameters.bubbleAttributeLabel : "";
+	this.bubbleAttribute = parameters.bubbleAttribute;
+
+	if (!parameters.bubbleAttribute) console.error ("VerticalCategoryBubbleChart: missing parameter - bubbleAttribute")
+	
+	this.getXValue = get_x_value;
+	this.getYValue = get_y_category;
+	this.getBubbleValue = get_bubble_value;
+	
+	this.getDataLabel = this.getKey;
+	
+	return this;
+}
+
+VerticalCategoryBubbleChart.prototype = Object.create(xDBubbleChart.prototype);
+VerticalCategoryBubbleChart.prototype.constructor = xDBubbleChart;
+
+VerticalCategoryBubbleChart.prototype.getYScale = function () {
+	
+	var y_scale = d3.scale.ordinal ();	
+	
+	if ((this.domain.length > 0) && (!isNaN (this.domain)[0])) {
+	
+		y_scale.domain (this.domain);		
+		y_scale.rangePoints ([this.h - this.getBottomMargin (), this.getTopMargin ()],1);
+	}
+	return y_scale;
+}
+
+VerticalCategoryBubbleChart.prototype.getToolTip = function (d) {
+	
+	return this.bubbleAttributeLabel + " = " + this.getKey (d) + ", " + 
+		this.xLabel + " = " + this.getXValue (d).toFixed(2) + ", " +
+		this.yLabel + " = " + this.getYValue (d) + ", " +
+		this.bubbleSizeLabel + " = " + (this.getBubbleValue (d) ? this.getBubbleValue (d).toFixed(2) : 0);
+}
+
+VerticalCategoryBubbleChart.prototype.getLeftMargin = function (max_y_label) {
+
+	return 100 + ((max_y_label > 20) ? (max_y_label * 4) : (max_y_label * 7));
+}
+
+VerticalCategoryBubbleChart.prototype.getMaxYLabel = function () {
+
+	var get_key = this.getYValue;
+	
+	//console.log ("getMaxYLabel " + d3.max (this.group, function (d) { return get_key(d).length; }));
+
+	return d3.max (this.group, function (d) { return get_key(d).length; });
+}
+
+

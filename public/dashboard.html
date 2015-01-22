@@ -17,6 +17,7 @@
 </head>
 <body>
 	<div class="main-container">
+		<div id="chart-EAN-by-brands"></div>
 		<div id="chart-measures-by-brands"></div>
 		<div id="chart-brands-items-by-day"></div>
 		<div id="chart-prices-by-brands"></div>
@@ -93,7 +94,7 @@
 	).show ({});
 	
 	event_dispatcher.addListener (hbc);	
-	/*
+	
 	var xbc = new xDBubbleChart (		
 		"chart-measures-by-brands",
 		//Get the ball attribute
@@ -108,7 +109,7 @@
 		{
 			"collection": "priceItems", 
 			"dimension": "Brand", 
-			"dimensionSelection": '{"Brand":doc.priceItem.attributes.Brand, "selectorValue":doc.priceItem.attributes.Brand}',
+			"dimensionSelection": '{"Brand":doc.priceItem.attributes.Brand}',
 			"measure": '{"measures": ["priceItem.offerSummary.TotalNew", "priceItem.offerSummary.LowestNewPrice.Amount", "priceItem.attributes.PackageQuantity"]}',
 			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
 		},
@@ -121,14 +122,49 @@
 			"yLabel": "Avg. Price",
 			"bubbleSizeLabel": "Package Quantity",
 			"bubbleAttributeLabel": "Brand",
-			"selectorAttribute": "priceItem.attributes.Brand"
+			"selectionWhere" : "this.priceItem.attributes.Brand == '<selected>'"
 		}
 	).show ({});
 	
 	event_dispatcher.addListener (xbc);
+
+	var vcbc = new VerticalCategoryBubbleChart (		
+		"chart-EAN-by-brands",
+		//Get the ball attribute
+		function (d) {return d.EAN},
+		//Get the x axis measure
+		function (d) {return d ["priceItem.offerSummary.TotalNew"]},
+		//Get the y axis category
+		function (d) {return d.Brand},
+		//Get the ball size measure
+		function (d) {return d ["priceItem.attributes.PackageQuantity"];},
+		event_dispatcher,
+		{
+
+			"collection": "priceItems", 
+			"dimension": "Brand", 
+			"dimensionSelection": '{"Brand":doc.priceItem.attributes.Brand,"EAN":doc.priceItem.attributes.EAN}',
+			"measure": '{"measures": ["priceItem.offerSummary.TotalNew", "priceItem.attributes.PackageQuantity"]}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
+		},
+		{ 	
+			"height": 500, 
+			"width": 800,			
+			"defaultColor":"rgb(119, 147, 60)",
+			"showXAxisLabel":true,
+			"xLabel": "Total New",
+			"yLabel": "Brand",
+			"bubbleAttribute": "EAN",
+			"bubbleSizeLabel": "Package Quantity",
+			"bubbleAttributeLabel": "EAN",
+			"selectionWhere" : "this.priceItem.attributes.Brand == '<selected>'"
+		}
+	).show ({});
+	
+	event_dispatcher.addListener (vcbc);
 	
 
-*/
+
 
 	/*var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",
