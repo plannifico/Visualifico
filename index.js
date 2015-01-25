@@ -47,7 +47,7 @@ app.get('/getMeasureByDimensionData', function(req, res) {
 	 logger.log (req.query.top);
 	 logger.log (req.query.filters);
 */	 
-	if (checkParameters (req)) {
+	if (checkParameters (req)  && req.query.measure) {
 		
 		logger.log ("getMeasureByDimensionData: parameters ok");
 		
@@ -82,6 +82,39 @@ app.get('/getMeasureByDimensionData', function(req, res) {
 		
 });
 
+app.get('/getAttributeValues', function(req, res) {
+
+	res.setHeader('Content-Type', 'application/json');
+ 
+	if (checkParameters (req)) {
+		
+		logger.log ("getAttributeValues: parameters ok");
+		
+		var filters = {};
+		
+		if (req.query.filters) {
+		
+			filters = JSON.parse(req.query.filters);
+			
+			logger.log ("getAttributeValues: filters_strings = " + filters);
+			
+		}
+		
+		
+		o.getAttributeValues (
+			res, req.query.collection, req.query.dimselection, req.query.dim, filters,
+			function (response) {
+				res.json (response);
+			});			
+	}
+	else
+		res.json ({
+			"response": {},
+			"domain": [],
+			"error": "getAttributeValues - wrong parameters"});
+		
+});
+/*
 app.get('/getStackedMeasureByDimensionData', function(req, res) {
 
 	res.setHeader('Content-Type', 'application/json');
@@ -97,15 +130,7 @@ app.get('/getStackedMeasureByDimensionData', function(req, res) {
 			filters = JSON.parse(req.query.filters);
 			
 			logger.log ("getBarChartData: filters_strings = " + filters);
-			/*
-			if ((filters_strings) && (filters_strings.length != 0)) {
-			
-				filters_strings.forEach (function (filter_str) {
-					logger.log ("getBarChartData: filter_str = " + filter_str);
-					filters.push (JSON.parse(filter_str));
-					
-				});
-			}*/
+
 		}
 		
 		var measure = JSON.parse(req.query.measure);
@@ -124,7 +149,7 @@ app.get('/getStackedMeasureByDimensionData', function(req, res) {
 			"domain": [],
 			"error": "wrong parameters"});
 		
-});
+});*/
 
 app.listen(app.get('port'), function() {
 
@@ -137,15 +162,7 @@ function checkParameters (req) {
 
 	if 	((req.query.collection) && 
 		 (req.query.dimselection) && 
-		 (req.query.dim) &&  
-		 (req.query.measure) && 
-		 (
-			(!req.query.top) ||
-		 
-			((req.query.top) &&
-			(!isNaN(req.query.top)))
-		
-		)) return true;
+		 (req.query.dim)) return true;
 	else
 		return false;
 }

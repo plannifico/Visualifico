@@ -17,6 +17,7 @@
 </head>
 <body>
 	<div class="main-container">
+		<div id="chart-brands"></div>
 		<div id="chart-EAN-by-brands"></div>
 		<div id="chart-measures-by-brands"></div>
 		<div id="chart-brands-items-by-day"></div>
@@ -27,7 +28,7 @@
 <script>
 
 	var event_dispatcher = new EventDispatcher ();
-	
+	/*
 	var vbc = new VerticalCategoryBarChart (		
 		"chart-prices-by-brands",
 		//get_value
@@ -126,7 +127,7 @@
 		}
 	).show ({});
 	
-	event_dispatcher.addListener (xbc);
+	event_dispatcher.addListener (xbc);*/
 
 	var vcbc = new VerticalCategoryBubbleChart (		
 		"chart-EAN-by-brands",
@@ -164,7 +165,28 @@
 	event_dispatcher.addListener (vcbc);
 	
 
-
+	var as = new AttributeSelectiorWidget (		
+		"chart-brands",
+		//Get the attribute
+		function (d) {return d.Brand},
+		event_dispatcher,
+		{
+			"collection": "priceItems", 
+			"attribute": "Brand",
+			"attributeSelector": '{"Brand":doc.priceItem.attributes.Brand}',
+			"defaultFilters": {"priceItem.attributes.ProductGroup":{"$in":["Ricambi e accessori auto"]}}
+		},
+		{ 	
+			"height": 100, 
+			"width": 400,			
+			"defaultColor":"rgb(119, 147, 60)",
+			"cols": 3,
+			"yLabel": "Brand",
+			"selectionWhere" : "this.priceItem.attributes.Brand == '<selected>'"
+		}
+	).show ({});
+	
+	//event_dispatcher.addListener (as);
 
 	/*var sbc = new StackedBarChart (		
 		"chart-brands-items-by-day",

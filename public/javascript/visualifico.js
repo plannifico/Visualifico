@@ -16,6 +16,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+var clientConfiguration = {};
+clientConfiguration.url = "http://localhost:5000/";
+
 function EventDispatcher () {
 
 	this.listeners = [];
@@ -44,12 +47,610 @@ EventDispatcher.prototype.addListener = function (listener) {
 	//console.log ("EventDispatcher::addListener " + this.listeners.length);
 };
 
-function VisualificoChart () {};
+/*
+	<<Abstract>> An object capable to load data
 
-VisualificoChart.prototype.getId = function () {
+	Abstract Methods:
+		* getURL
+		* setResponse
+*/
+function DataLoader () {};
+
+DataLoader.prototype.loadData = function (parameters, callback) {
+	
+	var _this = this;
+	
+	var filters = {};
+	
+	if (parameters.filters)
+		filters = parameters.filters;
+	else {
+			
+		filters = this.defaultFilters;	
+	}
+	this.currentFilters = JSON.parse( JSON.stringify(filters));
+	
+	this.currentTop = parameters.top;
+
+	//console.log(encodeURI(this.dimensionSelection));
+
+	var url = this.getURL (filters);
+
+	if (url) {
+	
+		console.log ("DataLoader::loadData url = " + decodeURI(url));
+	
+		d3.json(url
+			, function (error, data) {
+
+		
+			if (error) {
+				console.log ("DataLoader::loadData error - " + error);
+				return;
+			}
+			//console.log ("DataLoader::loadData data - " + JSON.stringify (data));
+			
+			_this.setResponse (data);
+			
+			callback ({"feedback": "ok"});			
+		})
+	} else
+		callback ({"feedback": "error", "error": "missing parameters!"})
+}
+
+/*
+	<<Abstract>> A Widget capable to manage interactions (selections)
+
+	Abstract Methods:
+		* draw
+*/
+function DrawableWidget () {};
+
+DrawableWidget.prototype = new DataLoader ();
+
+DrawableWidget.prototype.show = function (parameters) {
+
+	var _this = this;
+
+	this.loadData (parameters,
+	
+		function (response) {	
+		
+			if (response.feedback == "ok")
+				_this.draw ();
+				
+			else if (response.feedback == "error")
+				console.error ("DrawableWidget::show Error: " + response.error);
+	});
+	
+	return this;
+}
+
+DrawableWidget.prototype.returnColor = function (d) {
+	
+	//console.log ("color (this.getKey(d)) " + this.colorScale (this.getKey(d))); 
+	
+	if (this.useCategoryColors) return this.colorScale (this.getKey(d));	
+	
+	return this.defaultColor;
+}
+
+
+
+/*<<Abstract>> A Widget capable to manage interactions (selections)*/
+
+function InteractiveWidget () {};
+
+InteractiveWidget.prototype = new DrawableWidget ();
+
+InteractiveWidget.prototype.getId = function () {
 
 	return this.containerId;
 }
+
+InteractiveWidget.prototype.notifyEvent = function (event) {
+
+	console.log ("InteractiveWidget::notifyEvent event = " + JSON.stringify (event));
+	console.log ("InteractiveWidget::notifyEvent this.currentFilters [$where] = " + JSON.stringify (this.currentFilters ["$where"]));
+
+	//Qui errore: l'evento non ha selected ma c'e' una selezione da altri grafici
+	if (event.selected.length > 0) {
+
+		//Selected elements already exists
+		for (var sel_idx in event.selection) {
+			
+			if ((this.currentFilters [sel_idx]) && 
+				((!this.defaultFilters [sel_idx]) || this.defaultFilters [sel_idx].disabled)) {
+				
+				//Selected elements on the given dimension already exists
+				//this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
+				
+				if (event.action == "added") {
+
+					if (sel_idx == "$where") {						
+
+						this.currentFilters ["$where"] = event.selection [sel_idx] /*+ " && " + (this.currentFilters ["$where"] ? this.currentFilters ["$where"] : "true")*/;
+					}
+					else {
+				
+						( typeof event.selection [sel_idx] === 'string' ) ?					
+							this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]) :	
+							this.currentFilters [sel_idx] ["$in"].push.apply (event.selection [sel_idx]);	
+
+					}					
+				}
+				else if  (event.action == "removed") {
+
+					if (sel_idx == "$where") {
+
+						console.log ("InteractiveWidget::notifyEvent this.currentFilters [$where] = " + this.currentFilters ["$where"]);
+						console.log ("InteractiveWidget::notifyEvent event.selection [sel_idx] = " + event.selection [sel_idx]);
+
+						this.currentFilters ["$where"] = event.selection [sel_idx];
+						
+					}
+					else if ( typeof event.selection [sel_idx] === 'string' ) {
+
+
+						var idx = this.currentFilters [sel_idx] ["$in"].indexOf (event.selection [sel_idx]);					
+						this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+						
+					} else {
+
+						event.selection [sel_idx].forEach (function (element) {
+
+							var idx = this.currentFilters [sel_idx] ["$in"].indexOf (element);					
+							this.currentFilters [sel_idx] ["$in"].splice (idx,1);
+						});						
+					}
+				}
+			}
+			else {
+				//Selected elements does not exist on the given dimension
+
+				if (sel_idx == "$where") {
+					
+					this.currentFilters ["$where"] = event.selection [sel_idx];
+				}
+				else
+					this.currentFilters [sel_idx] = ( typeof event.selection [sel_idx] === 'string' ) ? {"$in":[event.selection [sel_idx]]} : {"$in": event.selection [sel_idx]} ;	
+
+				if (this.defaultFilters [sel_idx]) this.defaultFilters [sel_idx].disabled = true;
+			}
+		}
+	}
+	else {
+		//console.log ("VisualificoChart::notifyEvent selected empty " + this.defaultFilters [sel_idx]);	
+		for (var sel_idx in event.selection) {
+		
+			//console.log ("this.defaultFilters [sel_idx] " + this.defaultFilters [sel_idx]);		
+			if (this.defaultFilters [sel_idx])	{	
+				
+				delete this.defaultFilters [sel_idx].disabled;
+				
+				//A default filter is defined on the same dimension. Set back the default filter
+				this.currentFilters [sel_idx] = 
+					JSON.parse( JSON.stringify( this.defaultFilters [sel_idx] ) );
+				
+				
+			}
+			else if (sel_idx == "$where")
+				delete this.currentFilters ["$where"];
+			else
+				delete this.currentFilters [sel_idx];
+		}
+	}
+	
+	console.log ("InteractiveWidget::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
+	
+	var _this = this;
+	
+	this.loadData (
+		{ 
+			"filters": this.currentFilters
+		}, 
+		function (response) {
+			
+			if (response.feedback == "ok")
+				_this.update ();
+				
+			else if (response.feedback == "error")
+				console.error ("VisualificoChart::show Error: " + response.error);
+			
+		}
+	);
+}
+
+InteractiveWidget.prototype.getSelectedKey = function (d) {
+
+	return this.getKey (d);
+}
+
+InteractiveWidget.prototype.getSelection = function (d) {
+
+	var selection = {};
+	var _this = this;
+	
+	if (this.selectionWhere) {
+
+		selection ["$where"] = "";
+
+		this.selected.forEach (function (already_selected) {
+
+			//console.log ("InteractiveWidget::getSelection already_selected: " + already_selected);
+			selection ["$where"] += _this.selectionWhere.replace ("<selected>", already_selected) + " || ";
+		});
+
+		selection ["$where"] = selection ["$where"].substr(0, selection ["$where"].length - 4)
+
+	}
+	else
+		selection [this.selectorAttribute] = d.selectorValue;
+
+	//console.log ("InteractiveWidget::getSelection " + JSON.stringify(selection));
+
+	return selection;
+}
+
+InteractiveWidget.prototype.addInteraction = function (elements) {
+
+	var _this = this;
+	
+	//this.color = d3.scale.category20c();
+	var action = "";
+	
+	elements.on("click", function (d) {
+		
+		if ((_this.selected.length > 0) && (_this.selected.indexOf (_this.getSelectedKey (d)) >= 0)) {
+			//The clicked element is already selected: delete the selection
+			var idx = _this.selected.indexOf (_this.getSelectedKey (d));
+			
+			_this.selected.splice (idx,1);
+			
+			action = "removed";
+			_this.updateSelection ();
+			
+			
+		} else {				
+
+			//The clicked element is not selected
+			_this.selected.push (_this.getSelectedKey (d));								
+			action = "added";
+			_this.updateSelection ();					
+			
+		}
+		
+		_this.dispatcher.dispatch ({
+			"chartid": _this.containerId, 
+			"dimension" : _this.dimension, 
+			"selected" : _this.selected, 
+			"selection": _this.getSelection (d),
+			"action": action
+		});			
+	})
+	.on("mouseover", function() {
+		
+		if (_this.selected.length > 0) return;
+		
+		d3.select(this)
+			.transition()
+			.duration(250)
+			.attr("fill", _this.highlightColor);
+	})
+	.on("mouseout", function(d,i) {
+	
+		if (_this.selected.length > 0) return;
+		d3.select(this)
+			.transition()
+			.duration(250)
+			.attr("fill", function (d,i) {return _this.returnColor (d)});
+	});
+}
+
+InteractiveWidget.prototype.updateShapeSelection = function (shape) {
+
+	var color = d3.scale.category20c();
+	
+	var _this = this;
+	
+	if (this.selected.length == 0) {
+	
+		this.svg.selectAll (shape)
+			.data (this.group)
+			.attr("fill", function (d) {return _this.returnColor(d, color)});	
+	} else {
+	
+		this.svg.selectAll (shape)
+			.data (this.group)
+			.attr("fill", function (d,i) {
+				/*console.log ("d " + JSON.stringify (d));
+				console.log ("_this.getSelectedKey (d) " + _this.getSelectedKey (d));
+				console.log ("_this.selected.indexOf(_this.getSelectedKey (d)) " + _this.selected.indexOf(_this.getSelectedKey (d)));*/
+				if (_this.selected.indexOf(_this.getSelectedKey (d)) >= 0)
+					return _this.selectionColor;
+				else
+					return "rgb(191,191,191)";
+			});
+	}	
+}
+
+/*A widget that allows to select attributes*/
+function AttributeSelectiorWidget (__container_id, __get_attribute, __dispatcher, __query, __parameters)  {
+
+	this.containerId = __container_id;
+	
+	this.currentData = {};
+	
+	//Parameters:
+	this.h = __parameters.height;
+	this.w = __parameters.width;
+	
+	this.collection = __query.collection;
+	this.dimension = __query.attribute;
+	this.dimensionSelection = __query.attributeSelector;
+	this.defaultFilters = __query.defaultFilters;
+	
+	this.defaultColor = __parameters.defaultColor ? __parameters.defaultColor : "rgb(85, 142, 213)";
+	this.useCategoryColors = __parameters.useCategoryColors ? __parameters.useCategoryColors : false;
+	this.highlightColor = __parameters.highlightColor ? __parameters.highlightColor : "rgb(228,108,10)";
+	this.selectionColor = __parameters.selectionColor ? __parameters.selectionColor : "rgb(31,73,125)";
+
+	this.selectionWhere = __parameters.selectionWhere;
+	
+	this.dispatcher = __dispatcher;
+	
+	this.getAttribute = __get_attribute;
+	this.getKey = __get_attribute;
+	
+	this.selected = [];
+
+	this.call = "getAttributeValues";
+
+	this.cols = __parameters.cols ? __parameters.cols : 5;
+};
+
+AttributeSelectiorWidget.prototype = new InteractiveWidget ();
+
+AttributeSelectiorWidget.prototype.getURL = function (filters) {
+
+	if (this.collection && this.dimension) {
+	
+		var url = clientConfiguration.url + this.call +  
+			"?collection=" + this.collection +
+			"&dim=" + this.dimension +
+			"&dimselection=" + encodeURIComponent (this.dimensionSelection) +
+			(this.currentFilters ? "&filters=" + encodeURIComponent (JSON.stringify(filters)): "{}");
+	
+		console.log ("AttributeSelectiorWidget::getURL " + url);
+
+		return url;
+	}
+}
+
+AttributeSelectiorWidget.prototype.setResponse = function (data) {
+
+	this.oldGroup = this.group;
+	this.group = data.response.result;	
+
+	console.log ("AttributeSelectiorWidget::setResponse " + JSON.stringify (data.response));
+
+	this.domain = data.response.domain;
+
+
+	var rows_num = this.domain.length / this.cols;
+
+	this.rows = [];
+	this.rows [0] = [];
+
+	var col_idx = 0, row_idx = 0;
+
+	this.rowsMap = {};
+	
+	for (var idx = 0; idx < this.domain.length; idx++) {
+
+		if (col_idx == (this.cols)) {
+
+			//goto next row
+
+			col_idx = 0;
+			row_idx++;
+
+			this.rows [row_idx] = [];
+		}
+
+		this.rows [row_idx] [col_idx] = this.domain [idx];
+
+		this.rowsMap [this.domain [idx]] = {};
+		this.rowsMap [this.domain [idx]].rowIdx = row_idx;
+		this.rowsMap [this.domain [idx]].colIdx = col_idx;
+
+		col_idx++;
+	}
+
+	this.rows = row_idx+1;
+
+	this.barWidth = this.w / this.cols;
+	this.barHeight = this.h / this.rows;
+
+	console.log ("AttributeSelectiorWidget::setResponse this.rowsMap " + JSON.stringify (this.rowsMap));
+
+	console.log ("AttributeSelectiorWidget::setResponse this.barWidth " + this.barWidth);
+	console.log ("AttributeSelectiorWidget::setResponse this.barHeight " + this.barHeight);
+}
+
+AttributeSelectiorWidget.prototype.draw = function () {
+
+	console.log ("AttributeSelectiorWidget::draw");
+
+	var _this = this;
+
+	var svg = d3.select ("#" + this.containerId).append ("svg");
+
+	this.colorScale = d3.scale.category20();
+	
+	this.svg = svg;
+
+	var h = this.h;
+	var w = this.w;				
+
+	svg.attr ("width", w);
+	svg.attr ("height", h);
+
+	
+	var shapes = this.addShapes ("rect");
+	
+	this.addInteraction (shapes);
+
+	var texts = svg.selectAll (".selector-text")
+		.data (this.group)
+		.enter ()
+		.append ("text");
+
+	this.drawTextLabels (texts);
+
+}
+
+AttributeSelectiorWidget.prototype.getXScale = function () {
+	
+	var x_scale = d3.scale.ordinal ();	
+	
+	if ((this.domain.length > 0) && (!isNaN (this.domain)[0])) {
+	
+		x_scale.domain (d3.range (this.cols));		
+		x_scale.rangeBands ([0, this.w]);
+	}
+	return x_scale;
+}
+
+AttributeSelectiorWidget.prototype.getYScale = function () {
+	
+	var y_scale = d3.scale.ordinal ();	
+	
+	if ((this.domain.length > 0) && (!isNaN (this.domain)[0])) {
+	
+		y_scale.domain (d3.range (this.rows));		
+		y_scale.rangeBands ([0, this.h]);
+	}
+	return y_scale;
+}
+
+AttributeSelectiorWidget.prototype.getX = function (d, scale) {
+
+	return scale (this.rowsMap [this.getAttribute (d)].colIdx);
+}
+
+AttributeSelectiorWidget.prototype.getY = function (d, scale) {
+
+	/*console.log ("AttributeSelectiorWidget.getY " + this.getAttribute (d));
+	console.log ("AttributeSelectiorWidget.getY " + this.rowsMap [this.getAttribute (d)].rowIdx);
+	console.log ("AttributeSelectiorWidget.getY " + scale (this.rowsMap [this.getAttribute (d)].rowIdx));
+	*/
+	return scale (this.rowsMap [this.getAttribute (d)].rowIdx);
+}
+
+AttributeSelectiorWidget.prototype.getWidth = function (d, scale) {
+
+	return this.barWidth;
+}
+
+AttributeSelectiorWidget.prototype.getHeight = function (d, scale) {
+
+	return this.barHeight;
+}
+
+AttributeSelectiorWidget.prototype.addShapes = function () {
+
+	var new_bars = this.svg.selectAll ("rect")
+		.data (this.group)
+		.enter ()		
+		.append ("rect")
+		;
+
+	var _this = this;
+
+	var x_scale = this.getXScale ();		
+	var y_scale = this.getYScale ();
+
+	var bars = this.drawShapes (new_bars);
+	
+	bars.transition ().delay(200).ease ("elastic")
+		.attr ("x", function (d) {
+
+			return _this.getX (d, x_scale);
+		})
+		.attr ("y", function (d) {
+
+			return _this.getY (d, y_scale);
+		})	
+		.attr ("width", function (d) {
+	
+			return _this.getWidth (d, x_scale);			
+		})
+		.attr ("height", function (d) {
+			
+			return _this.getHeight (d, y_scale);			
+		});
+	
+	
+	return bars;
+}
+
+AttributeSelectiorWidget.prototype.drawShapes = function (shapes) {
+
+	var _this = this;
+	
+	var x_scale = this.getXScale ();		
+	var y_scale = this.getYScale ();
+
+	shapes
+		.attr("fill", function (d,i) {
+
+			return _this.returnColor (d);
+		})/*
+		.append("svg:title")
+		.text(function (d,i) {
+
+			return _this.getToolTip (d);
+		})*/;
+		
+	return shapes;
+}
+
+AttributeSelectiorWidget.prototype.drawTextLabels = function (texts) {
+
+	var _this = this;
+
+	var y_scale = this.getYScale ();
+	
+	var x_scale = this.getXScale ();
+	
+	texts.attr("class", "selector-text")
+	.attr("text-anchor", "middle")
+		.attr("x", function(d) {
+
+			return _this.getX (d, x_scale) + (_this.getWidth (d, x_scale)/2);
+		})
+		.attr("y", function(d) {
+		
+			return _this.getY (d, y_scale) + (_this.getHeight (d, y_scale)/2);
+		})
+		.text (function (d) {
+		
+			return _this.getAttribute (d);
+		});	
+}
+
+AttributeSelectiorWidget.prototype.updateSelection = function () {
+
+	this.updateShapeSelection ("rect");
+}
+
+/*<<Abstract>> A basic Visualifico Chart*/
+function VisualificoChart () {};
+
+VisualificoChart.prototype = new InteractiveWidget ();
+
+
 
 VisualificoChart.prototype.initChart = function (container_id, get_value, get_key, dispatcher, query, parameters, call) {
 
@@ -137,229 +738,7 @@ VisualificoChart.prototype.getYAxisMargin = function () {
 	return 40;
 }
 
-VisualificoChart.prototype.notifyEvent = function (event) {
-
-	console.log ("VisualificoChart::notifyEvent event = " + JSON.stringify (event));
-	//console.log ("VisualificoChart::notifyEvent this.currentFilters " + JSON.stringify (this.currentFilters)); 
-	//console.log ("VisualificoChart::notifyEvent this.defaultFilters " + JSON.stringify (this.defaultFilters));
-	//console.log ("VisualificoChart::notifyEvent event.selected.length " + event.selected.length);
-	//filter_obj [event.dimension] = 
-	console.log ("VisualificoChart::notifyEvent this.currentFilters [$where] = " + JSON.stringify (this.currentFilters ["$where"]));
-	//Qui errore: l'evento non ha selected ma c'e' una selezione da altri grafici
-	if (event.selected.length > 0) {
-		//Selected elements already exists
-		for (var sel_idx in event.selection) {
-			
-			if ((this.currentFilters [sel_idx]) && 
-				((!this.defaultFilters [sel_idx]) || this.defaultFilters [sel_idx].disabled)) {
-				
-				//Selected elements on the given dimension already exists
-				//this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]);
-				
-				if (event.action == "added") {
-
-					if (sel_idx == "$where") {
-						
-
-						this.currentFilters ["$where"] = event.selection [sel_idx] + " && " + (this.currentFilters ["$where"] ? this.currentFilters ["$where"] : "true");
-					}
-					else {
-				
-						( typeof event.selection [sel_idx] === 'string' ) ?					
-							this.currentFilters [sel_idx] ["$in"].push (event.selection [sel_idx]) :	
-							this.currentFilters [sel_idx] ["$in"].push.apply (event.selection [sel_idx]);	
-
-					}					
-				}
-				else if  (event.action == "removed") {
-
-					if (sel_idx == "$where") {
-
-						console.log ("VisualificoChart::notifyEvent this.currentFilters [$where] = " + this.currentFilters ["$where"]);
-						console.log ("VisualificoChart::notifyEvent event.selection [sel_idx] = " + event.selection [sel_idx]);
-
-						this.currentFilters ["$where"] = this.currentFilters ["$where"].replace (event.selection [sel_idx], "true");
-						
-					}
-					else if ( typeof event.selection [sel_idx] === 'string' ) {
-
-
-						var idx = this.currentFilters [sel_idx] ["$in"].indexOf (event.selection [sel_idx]);					
-						this.currentFilters [sel_idx] ["$in"].splice (idx,1);
-						
-					} else {
-
-						event.selection [sel_idx].forEach (function (element) {
-
-							var idx = this.currentFilters [sel_idx] ["$in"].indexOf (element);					
-							this.currentFilters [sel_idx] ["$in"].splice (idx,1);
-						});						
-					}
-				}
-			}
-			else {
-				//Selected elements does not exist on the given dimension
-
-				if (sel_idx == "$where") {
-					
-					this.currentFilters ["$where"] = event.selection [sel_idx];
-				}
-				else
-					this.currentFilters [sel_idx] = ( typeof event.selection [sel_idx] === 'string' ) ? {"$in":[event.selection [sel_idx]]} : {"$in": event.selection [sel_idx]} ;	
-
-				if (this.defaultFilters [sel_idx]) this.defaultFilters [sel_idx].disabled = true;
-			}
-		}
-	}
-	else {
-		//console.log ("VisualificoChart::notifyEvent selected empty " + this.defaultFilters [sel_idx]);	
-		for (var sel_idx in event.selection) {
-		
-			//console.log ("this.defaultFilters [sel_idx] " + this.defaultFilters [sel_idx]);		
-			if (this.defaultFilters [sel_idx])	{	
-				
-				delete this.defaultFilters [sel_idx].disabled;
-				
-				//A default filter is defined on the same dimension. Set back the default filter
-				this.currentFilters [sel_idx] = 
-					JSON.parse( JSON.stringify( this.defaultFilters [sel_idx] ) );
-				
-				
-			}
-			else if (sel_idx == "$where")
-				delete this.currentFilters ["$where"];
-			else
-				delete this.currentFilters [sel_idx];
-		}
-	}
-	
-	console.log ("VisualificoChart::notifyEvent this.currentFilters  " + JSON.stringify (this.currentFilters));
-	
-	var _this = this;
-	
-	this.loadData (
-		{
-			"top": this.currentTop, 
-			"filters": this.currentFilters
-		}, 
-		function (response) {
-			
-			if (response.feedback == "ok")
-				_this.update ();
-				
-			else if (response.feedback == "error")
-				console.error ("VisualificoChart::show Error: " + response.error);
-			
-		}
-	);
-}
-
-VisualificoChart.prototype.getSelectedKey = function (d) {
-
-	return this.getKey (d);
-}
-
-VisualificoChart.prototype.getSelection = function (d) {
-
-	var selection = {};
-	var _this = this;
-	
-	if (this.selectionWhere) {
-
-		selection ["$where"] = "";
-
-		this.selected.forEach (function (already_selected) {
-
-			//console.log ("VisualificoChart::getSelection already_selected: " + already_selected);
-			selection ["$where"] += _this.selectionWhere.replace ("<selected>", already_selected) + " || ";
-		});
-
-		selection ["$where"] = selection ["$where"].substr(0, selection ["$where"].length - 4)
-
-	}
-	else
-		selection [this.selectorAttribute] = d.selectorValue;
-
-	//console.log ("VisualificoChart::getSelection " + JSON.stringify(selection));
-
-	return selection;
-}
-
-VisualificoChart.prototype.addInteraction = function (elements) {
-
-	var _this = this;
-	
-	//this.color = d3.scale.category20c();
-	var action = "";
-	
-	elements.on("click", function (d) {
-		
-		if ((_this.selected.length > 0) && (_this.selected.indexOf (_this.getSelectedKey (d)) >= 0)) {
-			//The clicked element is already selected: delete the selection
-			var idx = _this.selected.indexOf (_this.getSelectedKey (d));
-			
-			_this.selected.splice (idx,1);
-			
-			action = "removed";
-			
-			//console.log ("_this.selected " + JSON.stringify (_this.selected));
-			_this.updateSelection ();
-			
-			
-		} else {				
-			//console.log ("onClick d = " + JSON.stringify (d));
-			//The clicked element is not selected
-			_this.selected.push (_this.getSelectedKey (d));								
-			action = "added";
-			_this.updateSelection ();					
-			
-		}
-		//console.log ("_this.selected " + JSON.stringify (_this.selected));
-		
-		_this.dispatcher.dispatch ({
-			"chartid": _this.containerId, 
-			"dimension" : _this.dimension, 
-			"selected" : _this.selected, 
-			"selection": _this.getSelection (d),
-			"action": action
-		});			
-	})
-	.on("mouseover", function() {
-		
-		if (_this.selected.length > 0) return;
-		
-		d3.select(this)
-			.transition()
-			.duration(250)
-			.attr("fill", _this.highlightColor);
-	})
-	.on("mouseout", function(d,i) {
-	
-		if (_this.selected.length > 0) return;
-		d3.select(this)
-			.transition()
-			.duration(250)
-			.attr("fill", function (d,i) {return _this.returnColor (d)});
-	});
-}
-
-VisualificoChart.prototype.loadData = function (parameters, callback) {
-	
-	var _this = this;
-	
-	var filters = {};
-	
-	if (parameters.filters)
-		filters = parameters.filters;
-	else {
-			
-		filters = this.defaultFilters;	
-	}
-	this.currentFilters = JSON.parse( JSON.stringify(filters));
-	
-	this.currentTop = parameters.top;
-
-	//console.log(encodeURI(this.dimensionSelection));
+VisualificoChart.prototype.getURL = function (filters) {
 
 	if (this.collection && this.dimension && this.measure) {
 	
@@ -369,44 +748,10 @@ VisualificoChart.prototype.loadData = function (parameters, callback) {
 			"&dim=" + this.dimension +
 			(this.stackedDimension ? "&stackedDim=" + this.stackedDimension : "") +
 			"&measure=" + this.measure +
-			((parameters.top && (!isNaN(parameters.top))) ? "&top=" + parameters.top : "") +
 			(this.currentFilters ? "&filters=" + encodeURIComponent (JSON.stringify(filters)): "{}");
 	
-		console.log ("BarChart::loadData url = " + decodeURI(url));
-	
-		d3.json(url
-			, function (error, data) {
-		
-			if (error) {
-				console.log ("BarChart::loadData error - " + error);
-				return;
-			}
-			//console.log ("BarChart::loadData data - " + JSON.stringify (data));
-			
-			_this.setResponse (data);
-			
-			callback ({"feedback": "ok"});			
-		})
-	} else
-		callback ({"feedback": "error", "error": "missing parameters!"})
-}
-
-VisualificoChart.prototype.show = function (parameters) {
-
-	var _this = this;
-
-	this.loadData (parameters,
-	
-		function (response) {	
-		
-			if (response.feedback == "ok")
-				_this.draw();
-				
-			else if (response.feedback == "error")
-				console.error ("VisualificoChart::show Error: " + response.error);
-	});
-	
-	return this;
+		return url;
+	}
 }
 
 VisualificoChart.prototype.setResponse = function (data) {
@@ -524,14 +869,6 @@ VisualificoChart.prototype.addYAxis = function (y_scale) {
 }
 
 	
-VisualificoChart.prototype.returnColor = function (d) {
-	
-	//console.log ("color (this.getKey(d)) " + this.colorScale (this.getKey(d))); 
-	
-	if (this.useCategoryColors) return this.colorScale (this.getKey(d));	
-	
-	return this.defaultColor;
-}
 
 
 VisualificoChart.prototype.drawAxisLabels = function () {
@@ -782,32 +1119,7 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	if (this.legendDataset) this.updateLegend();
 }
 
-ShapeChart.prototype.updateShapeSelection = function (shape) {
 
-	var color = d3.scale.category20c();
-	
-	var _this = this;
-	
-	if (this.selected.length == 0) {
-	
-		this.svg.selectAll (shape)
-			.data (this.group)
-			.attr("fill", function (d) {return _this.returnColor(d, color)});	
-	} else {
-	
-		this.svg.selectAll (shape)
-			.data (this.group)
-			.attr("fill", function (d,i) {
-				/*console.log ("d " + JSON.stringify (d));
-				console.log ("_this.getSelectedKey (d) " + _this.getSelectedKey (d));
-				console.log ("_this.selected.indexOf(_this.getSelectedKey (d)) " + _this.selected.indexOf(_this.getSelectedKey (d)));*/
-				if (_this.selected.indexOf(_this.getSelectedKey (d)) >= 0)
-					return _this.selectionColor;
-				else
-					return "rgb(191,191,191)";
-			});
-	}	
-}
 
 /*A ShapeChart that draws shape as bars*/
 function BarChart () {};

@@ -21,6 +21,57 @@ var config = require("../models/config.js");
 var logger = require("./logger.js");
 
 module.exports = function Orchestrator () {	
+
+	this.getAttributeValuesDBData = function (_collection, _attr_selection, _attr, _filters, callback) {
+	
+		logger.log ("Orchestrator::getAttributeValuesDBData");
+	
+		MongoClient.connect (config.db.uristring, function (err, db) {
+		
+			if (err) logger.log ("Orchestrator::getAttributeValuesDBData err " + err);
+		
+			if (!err) {
+
+
+				var collection = db.collection (_collection);
+
+				logger.log ("Orchestrator::getAttributeValuesDBData collection " + collection);
+				
+				if (collection) {	
+					
+					logger.log ("Orchestrator::getAttributeValuesDBData filters " + _filters);	
+
+				
+					var keyf_func = new Function('doc', 'return ' + decodeURI(_attr_selection));
+					
+					var reduce = "function( curr, result ) { result.count+=1 };";	
+					
+					var init = {count:0};			
+									
+					collection.group (keyf_func, _filters, init, reduce, 
+					
+						function (err, chart_data) {
+					
+							if (err) logger.log ("Orchestrator::getStackedChartDBData error during group-by: " + err);
+								
+							var domain = [];
+
+							for (var row_idx in chart_data) {
+
+								domain.push (chart_data [row_idx] [_attr]);
+							}
+							
+							callback ({"result": chart_data, "domain": domain});
+							
+							db.close ();												
+						}
+					);
+				}
+				else 
+					callback ({});
+			}
+		});
+	}
 	
 	this.getMeasureByDimensionDBData = function (_collection, _dim_selection, _dim, _measures, _attribute_list, _filters, callback) {
 	
@@ -215,6 +266,18 @@ module.exports = function Orchestrator () {
 		logger.log ("Orchestrator::getStackedMeasureByDimensionData");
 	
 		this.getStackedMeasureByDimensionDBData (_collection, _dim, _stacked_dim, _measure, _filters, function (chart_data) {
+			
+			callback ({
+				"response": chart_data
+			});
+		});
+	}
+
+	this.getAttributeValues = function (_res, _collection, _dimselection, _dim, _filters, callback) {
+	
+		logger.log ("Orchestrator::getAttributeValues");
+	
+		this.getAttributeValuesDBData (_collection, _dimselection, _dim, _filters, function (chart_data) {
 			
 			callback ({
 				"response": chart_data
