@@ -255,7 +255,7 @@ InteractiveWidget.prototype.notifyEvent = function (event) {
 				_this.update ();
 				
 			else if (response.feedback == "error")
-				console.error ("VisualificoChart::show Error: " + response.error);
+				console.error ("InteractiveWidget::show Error: " + response.error);
 			
 		}
 	);
@@ -294,6 +294,7 @@ InteractiveWidget.prototype.getSelection = function (d) {
 
 InteractiveWidget.prototype.addInteraction = function (elements) {
 
+	
 	var _this = this;
 	
 	//this.color = d3.scale.category20c();
@@ -301,6 +302,8 @@ InteractiveWidget.prototype.addInteraction = function (elements) {
 	
 	elements.on("click", function (d) {
 		
+		console.log ("InteractiveWidget::addInteraction click  " + JSON.stringify (d));
+
 		if ((_this.selected.length > 0) && (_this.selected.indexOf (_this.getSelectedKey (d)) >= 0)) {
 			//The clicked element is already selected: delete the selection
 			var idx = _this.selected.indexOf (_this.getSelectedKey (d));
@@ -340,6 +343,7 @@ InteractiveWidget.prototype.addInteraction = function (elements) {
 	.on("mouseout", function(d,i) {
 	
 		if (_this.selected.length > 0) return;
+
 		d3.select(this)
 			.transition()
 			.duration(250)
@@ -363,14 +367,12 @@ InteractiveWidget.prototype.updateShapeSelection = function (shape) {
 		this.svg.selectAll (shape)
 			.data (this.group)
 			.attr("fill", function (d,i) {
-				/*console.log ("d " + JSON.stringify (d));
-				console.log ("_this.getSelectedKey (d) " + _this.getSelectedKey (d));
-				console.log ("_this.selected.indexOf(_this.getSelectedKey (d)) " + _this.selected.indexOf(_this.getSelectedKey (d)));*/
+
 				if (_this.selected.indexOf(_this.getSelectedKey (d)) >= 0)
 					return _this.selectionColor;
 				else
 					return "rgb(191,191,191)";
-			});
+			}); 
 	}	
 }
 
@@ -407,6 +409,8 @@ function AttributeSelectiorWidget (__container_id, __get_attribute, __dispatcher
 	this.call = "getAttributeValues";
 
 	this.cols = __parameters.cols ? __parameters.cols : 5;
+
+	this.colorScale = d3.scale.category20();
 };
 
 AttributeSelectiorWidget.prototype = new InteractiveWidget ();
@@ -421,7 +425,7 @@ AttributeSelectiorWidget.prototype.getURL = function (filters) {
 			"&dimselection=" + encodeURIComponent (this.dimensionSelection) +
 			(this.currentFilters ? "&filters=" + encodeURIComponent (JSON.stringify(filters)): "{}");
 	
-		console.log ("AttributeSelectiorWidget::getURL " + url);
+		//console.log ("AttributeSelectiorWidget::getURL " + url);
 
 		return url;
 	}
@@ -432,7 +436,7 @@ AttributeSelectiorWidget.prototype.setResponse = function (data) {
 	this.oldGroup = this.group;
 	this.group = data.response.result;	
 
-	console.log ("AttributeSelectiorWidget::setResponse " + JSON.stringify (data.response));
+	//console.log ("AttributeSelectiorWidget::setResponse " + JSON.stringify (data.response));
 
 	this.domain = data.response.domain;
 
@@ -472,22 +476,20 @@ AttributeSelectiorWidget.prototype.setResponse = function (data) {
 	this.barWidth = this.w / this.cols;
 	this.barHeight = this.h / this.rows;
 
-	console.log ("AttributeSelectiorWidget::setResponse this.rowsMap " + JSON.stringify (this.rowsMap));
+	/*console.log ("AttributeSelectiorWidget::setResponse this.rowsMap " + JSON.stringify (this.rowsMap));
 
 	console.log ("AttributeSelectiorWidget::setResponse this.barWidth " + this.barWidth);
-	console.log ("AttributeSelectiorWidget::setResponse this.barHeight " + this.barHeight);
+	console.log ("AttributeSelectiorWidget::setResponse this.barHeight " + this.barHeight);*/
 }
 
 AttributeSelectiorWidget.prototype.draw = function () {
 
-	console.log ("AttributeSelectiorWidget::draw");
+	//console.log ("AttributeSelectiorWidget::draw");
 
 	var _this = this;
 
 	var svg = d3.select ("#" + this.containerId).append ("svg");
 
-	this.colorScale = d3.scale.category20();
-	
 	this.svg = svg;
 
 	var h = this.h;
@@ -693,6 +695,9 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	this.yLabel = ((parameters.yLabel) ? parameters.yLabel : "");
 
 	this.rotateXLabels = ((parameters.rotateXLabels) ? parameters.rotateXLabels : 0);
+
+	this.showXGridlines = parameters.showXGridlines ? parameters.showXGridlines : false;
+	this.showYGridlines = parameters.showYGridlines ? parameters.showYGridlines : false;
 	
 	this.dispatcher = dispatcher;
 	
@@ -702,6 +707,8 @@ VisualificoChart.prototype.initChart = function (container_id, get_value, get_ke
 	this.getDataLabel = this.getValue;
 	
 	this.selected = [];
+
+	this.colorScale = d3.scale.category20();
 }
 
 VisualificoChart.prototype.getTopMargin = function () {
@@ -819,7 +826,6 @@ VisualificoChart.prototype.updateLegend = function () {
 
 VisualificoChart.prototype.addXAxis = function (x_scale) {
 
-	
 
 	var xAxis = d3.svg.axis ()
 		.scale (x_scale)
@@ -833,8 +839,28 @@ VisualificoChart.prototype.addXAxis = function (x_scale) {
 	
 	this.xLabelsRotation (xaxis);
 
-	
+	if (this.showXGridlines) this.drawXGridlines (x_scale);
+		
 	//console.log ("addXAxis append ok");
+}
+
+VisualificoChart.prototype.drawXGridlines = function (x_scale) {
+
+	var make_x_axis = function () {        
+
+		return d3.svg.axis()
+			.scale(x_scale)
+			.orient("bottom")
+			.ticks(5);
+	};
+
+	this.svg.append("g")
+		.attr("class", "grid")
+		.attr("transform", "translate(0," + this.h + ")")
+		.call(make_x_axis()
+		    .tickSize(-this.h, 0, 0)
+		    .tickFormat("")
+		);
 }
 
 VisualificoChart.prototype.xLabelsRotation = function (xaxis) {
@@ -866,9 +892,27 @@ VisualificoChart.prototype.addYAxis = function (y_scale) {
 		.attr ("class","axis yaxis")
 		.attr ("transform", "translate(" + (this.getYAxisMargin () + this.getMaxYLabel() * 5) + ",0)")
 		.call (yAxis);
+
+	if (this.showYGridlines) this.drawYGridlines (y_scale);
 }
 
-	
+VisualificoChart.prototype.drawYGridlines = function (y_scale) {
+
+	var make_y_axis = function () {        
+
+		return d3.svg.axis()
+			.scale(y_scale)
+			.orient("left")
+			.ticks(5)
+	};
+
+	this.svg.append("g")
+		.attr("class", "grid")
+		.call(make_y_axis()
+		    .tickSize(-this.w, 0, 0)
+		    .tickFormat("")
+		);
+}	
 
 
 VisualificoChart.prototype.drawAxisLabels = function () {
@@ -890,40 +934,13 @@ VisualificoChart.prototype.drawAxisLabels = function () {
 	
 }
 
-function ShapeChart () {};
+VisualificoChart.prototype.getToolTip = function (d) {
 
-ShapeChart.prototype = new VisualificoChart ();
-
-ShapeChart.prototype.drawShapes = function (shapes) {
-
-	var _this = this;
-	
-	var x_scale = this.getXScale (
-		this.getLeftMargin (this.getMaxYLabel()), 
-		this.getRightMargin ());
-		
-	var y_scale = this.getYScale ();
-
-	shapes
-		.attr("fill", function (d,i) {
-
-			return _this.returnColor(d);
-		})
-		.append("svg:title")
-		.text(function (d,i) {
-
-			return _this.getToolTip (d);
-		});
-		
-	return shapes;
-}
-
-ShapeChart.prototype.getToolTip = function (d) {
 
 	return this.dimension + " = " + this.getKey (d) + ", " + JSON.parse(this.measure).measures[0] + " = " + this.getValue (d);
 }
 
-ShapeChart.prototype.drawShapeTextLabels = function (prefix, texts) {
+VisualificoChart.prototype.drawChartTextLabels = function (prefix, texts) {
 
 	var _this = this;
 
@@ -948,29 +965,16 @@ ShapeChart.prototype.drawShapeTextLabels = function (prefix, texts) {
 		});	
 }
 
-ShapeChart.prototype.drawShapeChart = function (shape, class_prefix) {
+VisualificoChart.prototype.drawChart = function (shape, class_prefix) {
 	
 	var _this = this;
 
 	var svg = d3.select ("#" + this.containerId).append ("svg");
-	/*
-	this.colorScale = 
-		d3.scale.ordinal().domain(this.domain).range(d3.scale.category20());
-*/
-	this.colorScale = d3.scale.category20();
-	//console.log ("BarChart::draw this.domain " + JSON.stringify (this.domain));
-	//console.log ("BarChart::draw this.colorScale " + this.colorScale ("LAMPA"));
 	
-	this.svg = svg;
+	this.svg = svg;			
 
-	var h = this.h;
-	var w = this.w;				
-		
-	var get_key = this.getKey;
-	var get_value = this.getValue;
-
-	svg.attr ("width", w);
-	svg.attr ("height", h);
+	svg.attr ("width", this.w);
+	svg.attr ("height", this.h);
 
 	var y_scale = this.getYScale ();
 	
@@ -983,8 +987,6 @@ ShapeChart.prototype.drawShapeChart = function (shape, class_prefix) {
 	
 	var shapes = this.addShapes (shape);
 	
-	this.addInteraction (shapes);
-
 	var texts = svg.selectAll ("." + class_prefix + "-text")
 		.data (this.group)
 		.enter ()
@@ -995,12 +997,12 @@ ShapeChart.prototype.drawShapeChart = function (shape, class_prefix) {
 	if (this.showXAxisLabel) this.drawAxisLabels (texts);
 	
 	if (this.legendDataset)
-		this.drawLegend ();		
+		this.drawLegend ();
+
+	return shapes;		
 }
 
-ShapeChart.prototype.updateShapes = function (shape, prefix) {
-	
-	//console.log ("ShapeChart::updateShapes");
+VisualificoChart.prototype.updateChart = function (shape, prefix) {
 	
 	var _this = this;
 	var svg = this.svg;
@@ -1075,13 +1077,6 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 		.remove();	
 	
 	var shapes = this.addShapes (shape);
-		
-	shapes
-		.attr ("x", function (d) {
-		
-			//console.log ("add " + JSON.stringify (d));
-			//return _this.getX (d, x_scale);
-		});	
 	
 	this.addInteraction (shapes);
 	
@@ -1119,6 +1114,227 @@ ShapeChart.prototype.updateShapes = function (shape, prefix) {
 	if (this.legendDataset) this.updateLegend();
 }
 
+/*A LineChart*/
+function LineChart (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.init (container_id, get_value, get_key, dispatcher, query, parameters);
+
+	this.pointSize = parameters.pointSize ? parameters.pointSize : 5;
+
+	return this;
+};
+
+LineChart.prototype = new VisualificoChart ();
+
+LineChart.prototype.init = function (container_id, get_value, get_key, dispatcher, query, parameters) {
+
+	this.initChart (container_id, get_value, get_key, dispatcher, query, parameters, "getMeasureByDimensionData");
+}
+
+LineChart.prototype.addShapes = function (shape) {
+
+	var new_lines = this.svg.append (shape);
+
+	var _this = this;
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ());
+		
+	var y_scale = this.getYScale ();
+
+	var lineFunc = d3.svg.line()
+		.x(function(d) {
+			return x_scale (_this.getKey (d));
+		})
+		.y(function(d) {
+			return y_scale (_this.getValue (d));
+		})
+		.interpolate('linear');
+
+	new_lines
+		.attr('d', lineFunc(this.lineData))
+		.attr('stroke', this.returnColor())
+		.attr('stroke-width', 2)
+		.attr('fill', 'none');
+
+	var points = this.svg.selectAll ("circle")
+		.data (this.group)
+		.enter ()
+		.append ("circle")
+		.attr("fill", function (d,i) {
+
+			return _this.returnColor(d);
+		})		
+		.attr ("cx", function (d) {
+					
+			return _this.getX (d, x_scale);
+		})
+		.attr ("cy", function (d) {
+		
+			return _this.getY (d, y_scale);
+		})	
+		.attr ("r", function (d) {
+			
+			return _this.pointSize;	
+		})
+
+	points		
+		.append("svg:title")
+		.text(function (d,i) {
+
+			return _this.getToolTip (d);
+		});
+	
+	return points;
+}
+
+LineChart.prototype.updateShapesCoordinates = function (shapes_to_update) {
+
+	var _this = this;
+	
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ()
+	);
+		
+	var y_scale = this.getYScale ();
+
+		
+	shapes_to_update
+		.attr ("x", function (d) {
+		
+			//console.log ("updateShapesCoordinates " + JSON.stringify (d));
+			return _this.getX (d, x_scale);
+		})
+		.attr ("y", function (d) {
+		
+			//console.log ("y = " + _this.getY (d, y_scale));
+			return _this.getY (d, y_scale);
+		});
+		
+	return shapes_to_update;
+}
+
+LineChart.prototype.drawTextLabels = function (texts) {
+	
+	this.drawChartTextLabels ("line", texts);
+}
+
+LineChart.prototype.draw = function () {
+	
+	var points = this.drawChart ("svg:path", "line");	
+	this.addInteraction (points);
+}
+
+
+LineChart.prototype.update = function () {
+	
+	console.log ("LineChart::update");
+	
+	this.updateChart ("svg:path", "line");		
+}
+	
+LineChart.prototype.updateSelection = function () {
+
+	this.updateShapeSelection ("circle");
+}
+
+LineChart.prototype.getYScale = function () {
+	
+	var get_value = this.getValue;
+	var y_scale = d3.scale.linear ();
+
+	y_scale.domain ([0, d3.max (this.group, function (d) { return get_value (d); })]);
+	y_scale.range ([this.h - this.getBottomMargin (), this.getTopMargin ()]);
+	
+	return y_scale;
+}
+
+LineChart.prototype.getXScale = function (l_padding, right_margin) {
+	
+	var x_scale = d3.scale.ordinal ();	
+
+	if ((this.domain.length > 0) /*&& (!isNaN (this.domain)[0])*/) {
+	
+		x_scale.domain (this.domain);		
+		x_scale.rangePoints ([this.getLeftMargin (0), this.w - this.getRightMargin ()]);
+	}
+	return x_scale;
+}
+
+LineChart.prototype.getY = function (d, y_scale) {		
+	
+	var get_value = this.getValue;	
+	return y_scale (get_value (d));
+}	
+
+LineChart.prototype.getX = function (d, x_scale) {
+	
+	var get_key = this.getKey;	
+	return x_scale (this.getKey (d));
+}
+
+
+LineChart.prototype.getLabelX = function (d, x_scale) {
+
+	return x_scale (this.getKey (d));
+}	
+
+LineChart.prototype.getLabelY = function (d, y_scale) {
+	
+	return y_scale (this.getValue (d)) + 15;
+	
+	
+}	
+
+LineChart.prototype.setResponse = function (data) {
+
+	this.oldGroup = this.group;
+	this.group = data.response.result;	
+
+
+	console.log ("AttributeSelectiorWidget::setResponse " + JSON.stringify (data.response));
+
+	this.domain = data.response.domains [this.dimension];
+
+	this.lineData = this.group;
+	/*console.log ("AttributeSelectiorWidget::setResponse this.rowsMap " + JSON.stringify (this.rowsMap));
+
+	console.log ("AttributeSelectiorWidget::setResponse this.barWidth " + this.barWidth);
+	console.log ("AttributeSelectiorWidget::setResponse this.barHeight " + this.barHeight);*/
+}
+
+/*A Chart based on a draw of a shape (E.g. Bars, Bubbles)*/
+function ShapeChart () {};
+
+ShapeChart.prototype = new VisualificoChart ();
+
+ShapeChart.prototype.drawShapes = function (shapes) {
+
+	var _this = this;
+	
+	var x_scale = this.getXScale (
+		this.getLeftMargin (this.getMaxYLabel()), 
+		this.getRightMargin ());
+		
+	var y_scale = this.getYScale ();
+
+	shapes
+		.attr("fill", function (d,i) {
+
+			return _this.returnColor(d);
+		})
+		.append("svg:title")
+		.text(function (d,i) {
+
+			return _this.getToolTip (d);
+		});
+
+	
+
+		
+	return shapes;
+}
 
 
 /*A ShapeChart that draws shape as bars*/
@@ -1206,12 +1422,13 @@ BarChart.prototype.updateShapesCoordinates = function (shapes_to_update) {
 
 BarChart.prototype.drawTextLabels = function (texts) {
 	
-	this.drawShapeTextLabels ("bar", texts);
+	this.drawChartTextLabels ("bar", texts);
 }
 
 BarChart.prototype.draw = function () {
 	
-	this.drawShapeChart ("rect", "bar");	
+	var shapes = this.drawChart ("rect", "bar");	
+	this.addInteraction (shapes);
 }
 
 
@@ -1219,7 +1436,7 @@ BarChart.prototype.update = function () {
 	
 	console.log ("BarChart::update");
 	
-	this.updateShapes ("rect", "bar");		
+	this.updateChart ("rect", "bar");		
 }
 	
 BarChart.prototype.updateSelection = function () {
@@ -1642,12 +1859,13 @@ BubbleChart.prototype.getToolTip = function (d) {
 
 BubbleChart.prototype.drawTextLabels = function (texts) {
 
-	this.drawShapeTextLabels ("bubble", texts);
+	this.drawChartTextLabels ("bubble", texts);
 }
 
 BubbleChart.prototype.draw = function () {
 	
-	this.drawShapeChart ("circle", "bubble");	
+	var shapes = this.drawChart ("circle", "bubble");	
+	this.addInteraction (shapes);
 }
 
 
@@ -1655,7 +1873,7 @@ BubbleChart.prototype.update = function () {
 	
 	console.log ("BubbleChart::update");
 	
-	this.updateShapes ("circle", "bubble");		
+	this.updateChart ("circle", "bubble");		
 }
 	
 BubbleChart.prototype.updateSelection = function () {

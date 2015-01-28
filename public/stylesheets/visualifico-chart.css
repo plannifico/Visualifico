@@ -39,6 +39,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	font-weight: bold;
 }
 
+.line-text {
+	font-family: sans-serif;
+	font-size: 10px;
+	fill: grey;
+	font-weight: bold;
+}
+
 .selector-text {
 	font-family: sans-serif;
 	font-size: 10px;
@@ -74,3 +81,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	font-weight: bold;
 	fill: rgb(166,166,166);
 }
+
+
+.grid .tick {
+    stroke: lightgrey;
+    opacity: 0.7;
+}
+.grid path {
+      stroke-width: 0;
+}
+
+
